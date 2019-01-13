@@ -4,6 +4,8 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
+      - apt-get update -y
+      - apt-get install docker-ce -y
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
   build:
