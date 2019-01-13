@@ -6,6 +6,8 @@ phases:
       - echo Pre-Build started on `date`
       - apt-get update -y
       - apt-get install docker.io -y
+      - sleep 10
+      - docker -v
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_DEFAULT_REGION)
   build:
