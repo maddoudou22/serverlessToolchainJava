@@ -19,16 +19,17 @@ phases:
       - echo Get project name from the pom.xml ...
       - apt-get install libxml2-utils -y
       - PROJECT_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+      - IMAGE_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       - cp target/serverlessToolchainJava-$PROJECT_VERSION.jar .
   post_build:
     commands:
       - echo Post-Build started on `date`
       - echo Building the Docker image...      
-      - docker build -t $IMAGE_REPO_NAME:$PROJECT_VERSION .
-      - docker tag $IMAGE_REPO_NAME:$PROJECT_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PROJECT_VERSION      
+      - docker build -t $IMAGE_NAME:$PROJECT_VERSION .
+      - docker tag $IMAGE_NAME:$PROJECT_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$PROJECT_VERSION      
       - echo Pushing the Docker image...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PROJECT_VERSION
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$PROJECT_VERSION
       - echo Writing image definitions file...
-      - printf '[{"name":"serverlesstoolchainjava","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$$PROJECT_VERSION > imagedefinitions.json
+      - printf '[{"name":"serverlesstoolchainjava","imageUri":"%s"}]' $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_NAME:$PROJECT_VERSION > imagedefinitions.json
 artifacts:
     files: imagedefinitions.json
