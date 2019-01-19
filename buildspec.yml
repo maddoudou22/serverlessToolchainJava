@@ -16,7 +16,7 @@ phases:
       - mvn clean package
       - ls .
       - ls target/
-      - echo Get project name from the pom.xml ...
+      - echo Get project name and version from the pom.xml...
       - apt-get install libxml2-utils -y
       - PROJECT_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
       - PROJECT_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
