@@ -17,7 +17,9 @@ phases:
       - ls .
       - ls target/
       - echo Get project name from the pom.xml ...
-      - cp target/serverlessToolchainJava-*.jar .
+      - apt-get install libxml2-utils -y
+      - PROJECT_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+      - cp target/serverlessToolchainJava-$PROJECT_VERSION.jar .
   post_build:
     commands:
       - echo Post-Build started on `date`
