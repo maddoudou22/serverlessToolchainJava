@@ -20,6 +20,8 @@ phases:
       - apt-get install libxml2-utils -y
       - PROJECT_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
       - IMAGE_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
+      - echo PROJECT_VERSION $PROJECT_VERSION
+      - echo IMAGE_NAME $IMAGE_NAME
       - cp target/serverlessToolchainJava-$PROJECT_VERSION.jar .
   post_build:
     commands:
