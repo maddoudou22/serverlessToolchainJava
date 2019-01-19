@@ -28,4 +28,4 @@ phases:
       - echo Writing image definitions file...
       - printf '[{"name":"serverlesstoolchainjava","imageUri":"%s"}]' $IMAGE_REPO_NAME:$IMAGE_TAG > imagedefinitions.json
 artifacts:
-    files: imagedefinitions.json
+    files: ecsImageDefinition.json
