@@ -13,7 +13,7 @@ phases:
     commands:
       - echo Build started on `date`
       - pip install --upgrade awscli
-      - mvn package shade:shade
+      - mvn clean package
       - ls .
       - ls target/
       - cp target/serverlessToolchainJava-*.jar .
