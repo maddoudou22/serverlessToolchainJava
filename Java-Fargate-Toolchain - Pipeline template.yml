@@ -1,7 +1,14 @@
 AWSTemplateFormatVersion: '2010-09-09'
 
 Description: creation automatisee d'un pipeline DevOps avec un repository ECR et un cluster Fargate
+# Note pour la suppression de la stack :
+# - Le contenu du bucket doit être supprimé manuellement. CloudFormation ne supprime pas de buckets dont le contenu n'est pas vide.
+# - Le contenu du Repository ECR doit être supprimé manuellement. CloudFormation ne supprime pas de Repository ECR dont le contenu n'est pas vide.
+# - Dans Code Build, il vaut mieux décocher la case "Allow AWS CodeBuild to modify this service role so it can be used with this build project" 
+#   qui est cochée par Défaut, ça évite des problèmes de modification/décommissionnement de la stack. CloudFormation ne permet pas de décocher cette case lors d'un déploiement
+#   Il est donc nécessaire de supprimer la policy créée pour CodeBuild manuellement sinon le rôle ne pourra pas être supprimé.
 
+ 
 Parameters:
 
   ProjectName:
