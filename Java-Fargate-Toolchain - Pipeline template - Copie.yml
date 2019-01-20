@@ -14,7 +14,7 @@ Parameters:
   ProjectName:
     Description: Nom du projet
     Type: String
-    Default: "Java-Fargate-Toolchain"
+    Default: "Java-Fargate-Toolchain-CFN"
     AllowedPattern: '[A-Za-z0-9-]+'
     
   ECRRepositoryName:
@@ -26,10 +26,15 @@ Parameters:
   FargateCluster:
     Description: Nom du cluster Fargate sur lequel les conteneurs de l'application s'executeront
     Type: String
-    #Default: "javafargatetoolchain-FargateCluster"
-    Default: "fargate-cluster"
+    Default: "fargate-cluster-CFN"
     AllowedPattern: '[A-Za-z0-9-]+'
     
+  ServiceName:
+    Description: nom du service utilise pour le deploiement des conteneurs
+    Type: String
+    Default: "fargate-service-CFN"
+    AllowedPattern: '[A-Za-z0-9-]+'
+  
   bucketS3:
     Description: "Bucket contenant les artefacts de l'application pour leur integration et leur deploiement (codes source et imagedefinitions des conteneurs requis)."
     Type: 'String'
@@ -329,8 +334,7 @@ Resources:
                 Provider: ECS
               Configuration:
                 ClusterName: !Ref FargateCluster
-                ServiceName: custom-service
-                #ServiceName: !Sub ${FargateCluster}-service
+                ServiceName: !Ref ServiceName
                 FileName: imagedefinitions.json
               InputArtifacts:
                 - Name: BuildOutput

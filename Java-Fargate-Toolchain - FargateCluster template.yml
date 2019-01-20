@@ -1,0 +1,209 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: creation automatisee d'un cluster Fargate avec une Task Definition et un service
+# Le cluster est cree avec une Task Definition allouant 0,25vCPU et 0,5GB de RAM au conteneur pour (hard-code dans le template pour simplifier
+# Note pour la suppression de la stack :
+# -
+
+ 
+Parameters:
+
+  ECRRepositoryName:
+    Description: Nom du repository cree dans ECR hebergeant les images Docker a deployer
+    Type: String
+    Default: "javafargatetoolchain"
+    AllowedPattern: '[a-z]+'
+
+  FargateCluster:
+    Description: Nom du cluster Fargate sur lequel les conteneurs de l'application s'executeront
+    Type: String
+    Default: "fargate-cluster-CFN"
+    AllowedPattern: '[A-Za-z0-9-]+'
+    
+  ServiceName:
+    Description: nom du service utilise pour le deploiement des conteneurs
+    Type: String
+    Default: "fargate-service-CFN"
+    AllowedPattern: '[A-Za-z0-9-]+'
+
+  VPC:
+    Description: VPC dans lequel le Security Group alloue au conteneurs sera cree
+    Type: AWS::EC2::VPC::Id
+    
+  Subnet:
+    Description: Subnet dans lequel le Service execute les conteneurs (doit etre dans le VPC specife ci-dessous)
+    Type: AWS::EC2::Subnet::Id
+
+  # Il est imperatif de specifier une image Docker lors de la creation de la Task Definition. Cependant l'image
+  #  souhaitee n'aura pas encore ete buildee par CodePipeline. En attendant on specifie une image bidon.
+#  ContainerImage:
+#    Description: Image utilisee uniquement pour la creation de la TaskDefinition. Sera ecrasee au premier build de l'application par CodeBuild.
+#    Type: String
+#    Default: nginx
+
+  ContainerPort:
+    Description: port appele par les clients pour acceder au service 
+    Type: Number
+    Default: 8080
+
+  ContainerCPU:
+    Description: vCPU alloues au conteneur - 256=0,25vCPU - (attention - verifier qua la valeur soit compatible avec la RAM selectionnee)
+    Type: Number
+    Default: 256
+    AllowedValues:
+      - 256
+      - 512
+      - 1024
+      - 2048
+      - 4096
+      # 256 (.25 vCPU) - Available memory values: 0.5GB, 1GB, 2GB
+      # 512 (.5 vCPU) - Available memory values: 1GB, 2GB, 3GB, 4GB
+      # 1024 (1 vCPU) - Available memory values: 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB
+      # 2048 (2 vCPU) - Available memory values: Between 4GB and 16GB in 1GB increments
+      # 4096 (4 vCPU) - Available memory values: Between 8GB and 30GB in 1GB increments
+    
+  ContainerRAM:
+    Description: RAM allouee au conteneur - 512=0,5GB - (attention - verifier qua la valeur soit compatible avec le selectionne)
+    Type: Number
+    Default: 512
+    AllowedValues:
+      - 512
+      - 1024
+      - 2048
+      - 4096
+      - 8192
+      # 0.5GB, 1GB, 2GB - Available cpu values: 256 (.25 vCPU)
+      # 1GB, 2GB, 3GB, 4GB - Available cpu values: 512 (.5 vCPU)
+      # 2GB, 3GB, 4GB, 5GB, 6GB, 7GB, 8GB - Available cpu values: 1024 (1 vCPU)
+      # Between 4GB and 16GB in 1GB increments - Available cpu values: 2048 (2 vCPU)
+      # Between 8GB and 30GB in 1GB increments - Available cpu values: 4096 (4 vCPU)
+      
+Resources:
+
+#------------------------------------------------------------------------------------------------------------
+#- Creation des elements de securite ------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  # ExecutionRole endosse par ECS
+  # A role needed by ECS.
+  # Role that containers in this task can assume. All containers in this task are granted the permissions that are specified in this role.
+  # There is an optional task execution IAM role that you can specify with Fargate to allow your Fargate tasks to make API calls to Amazon ECR.
+  ExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ServiceName}-ExecutionRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+      ManagedPolicyArns:
+        - 'arn:aws:iam::aws:policy/service-role/AmazonECSTaskExecutionRolePolicy'
+
+  # TaskRole endosse par ECS
+  # Role that grants containers in the task permission to call AWS APIs on your behalf.
+  TaskRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ServiceName}-TaskRole
+      AssumeRolePolicyDocument:
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: ecs-tasks.amazonaws.com
+            Action: 'sts:AssumeRole'
+
+
+  # Security Group associe au conteneur
+  ContainerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: !Join ['', [!Ref ServiceName, ContainerSecurityGroup]]
+      VpcId: !Ref VPC
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: !Ref ContainerPort
+          ToPort: !Ref ContainerPort
+          CidrIp: 0.0.0.0/0
+
+
+#------------------------------------------------------------------------------------------------------------
+#- Creation du Cluster --------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  Cluster:
+    Type: AWS::ECS::Cluster
+    Properties:
+      ClusterName: !Ref FargateCluster
+      
+      
+#------------------------------------------------------------------------------------------------------------
+#- Creation de la Task Definition ---------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+      
+  LogGroup:
+    Type: AWS::Logs::LogGroup
+    Properties:
+      LogGroupName: !Join ['', [/ecs/, !Ref ServiceName, TaskDefinition]]
+      
+  TaskDefinition:
+    Type: AWS::ECS::TaskDefinition
+    # S'assurer que le log group est cree avant la TaskDefinition
+    DependsOn: LogGroup
+    Properties:
+      # Nom de la task definition
+      Family: !Sub ${ServiceName}-TaskDefinition
+      NetworkMode: awsvpc # Obligatoire pour Fargate
+      RequiresCompatibilities:
+        - FARGATE
+      Cpu: !Ref ContainerCPU
+      Memory: !Ref ContainerRAM
+      ExecutionRoleArn: !Ref ExecutionRole
+      TaskRoleArn: !Ref TaskRole
+      ContainerDefinitions:
+        - Name: !Ref ECRRepositoryName
+          Image: !Ref ECRRepositoryName
+          PortMappings:
+            - ContainerPort: !Ref ContainerPort
+          # Send logs to CloudWatch Logs
+          LogConfiguration:
+            LogDriver: awslogs
+            Options:
+              awslogs-region: !Ref AWS::Region
+              awslogs-group: !Ref LogGroup
+              awslogs-stream-prefix: ecs
+              
+              
+#------------------------------------------------------------------------------------------------------------
+#- Creation du service --------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  Service:
+    Type: AWS::ECS::Service
+    Properties: 
+      ServiceName: !Ref ServiceName
+      Cluster: !Ref FargateCluster
+      TaskDefinition: !Ref TaskDefinition
+      DeploymentConfiguration:
+        MinimumHealthyPercent: 100
+        MaximumPercent: 200
+      DesiredCount: 1
+      LaunchType: FARGATE
+      NetworkConfiguration: 
+        AwsvpcConfiguration:
+          AssignPublicIp: ENABLED
+          Subnets:
+            - !Ref Subnet
+          SecurityGroups:
+            - !Ref ContainerSecurityGroup
+
+            
+#------------------------------------------------------------------------------------------------------------
+#- Outputs --------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+#Outputs:
+#  Endpoint:
+#    Description: Endpoint
+#    Value: !Join ['', ['https://', !Ref DNSRecord]]
