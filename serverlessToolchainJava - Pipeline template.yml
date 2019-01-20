@@ -1,0 +1,337 @@
+AWSTemplateFormatVersion: '2010-09-09'
+
+Description: creation automatisee d'un pipeline DevOps avec un repository ECR et un cluster Fargate
+
+Parameters:
+
+  ProjectName:
+    Description: Nom du projet
+    Type: String
+    Default: "Java-Fargate-Toolchain"
+    AllowedPattern: '[A-Za-z0-9-]+'
+    
+  ECRRepositoryName:
+    Description: Nom du repository cree dans ECR hebergeant les images Docker generee durant l'etape de Post-Build de CodeBuild
+    Type: String
+    Default: "javafargatetoolchain"
+    AllowedPattern: '[a-z]+'
+
+  FargateCluster:
+    Description: Nom du cluster Fargate sur lequel les conteneurs de l'application s'executeront
+    Type: String
+    #Default: "javafargatetoolchain-FargateCluster"
+    Default: "fargate-cluster"
+    AllowedPattern: '[A-Za-z0-9-]+'
+    
+  bucketS3:
+    Description: "Bucket contenant les artefacts de l'application pour leur integration et leur deploiement (codes source et imagedefinitions des conteneurs requis)."
+    Type: 'String'
+    Default: "javafargatetoolchain"
+    AllowedPattern: '[a-z0-9]+'
+
+  EncryptionKeyARN:
+    Description: ARN de la cle CMK KMS utilisee pour chiffrer le bucket S3 (imperatif pour l'utilisation avec CodeBuild). Si la cle par defaut "arn:aws:kms:eu-west-1:962109799108:alias/aws/s3" n'existe pas, elle sera creee automatiquement par S3.
+    Type: String
+    Default: "arn:aws:kms:eu-west-1:962109799108:alias/aws/s3"
+
+  GitHubUser:
+    Description: Nom d'utilisateur GitHub.
+    Type: String
+    Default: "maddoudou22"
+    
+  GitHubRepository:
+    Description: Nom du projet declare dans GitHub.
+    Type: String
+    Default: "serverlessToolchainJava"
+    
+  GitHubBranch:
+    Description: Branch utilisee dans GitHub.
+    Type: String
+    Default: "master"
+    
+  GitHubOAuthToken:
+    Description: Token Oauth de GitHub. (A generer et recuperer depuis GitHub dans Settings -> Developer Settings -> Personnal Access Tokens)
+    Type: String
+    Default: ""
+        
+    
+Resources:
+
+
+#------------------------------------------------------------------------------------------------------------
+#- Creation du Bucket S3 hebergeant les artefacts compiles et imagedefinitions.json -------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  # Creation du bucket lui-meme :
+  ArtefactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref bucketS3
+      AccessControl: Private
+
+      
+  # Policy associee au bucket :
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    #Si la Policy est créée avant le bucket la création de la stack échoue :
+    DependsOn: ArtefactsBucket
+    Properties:
+      Bucket: !Ref bucketS3
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - s3:*
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${bucketS3}
+              - !Sub arn:aws:s3:::${bucketS3}/*
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+                
+ 
+#------------------------------------------------------------------------------------------------------------
+#- Creation du repository ECR hebergeant les images Docker generees par CodeBuild ---------------------------
+#------------------------------------------------------------------------------------------------------------
+ 
+  ECRrepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Ref ECRRepositoryName
+    
+    
+#------------------------------------------------------------------------------------------------------------
+#- CodeBuild ------------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  # Role endosse par CodeBuild pour la creation du projet Codebuild :
+  BuildProjectRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      RoleName: !Sub ${ProjectName}-CodeBuildRole
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          #
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: 
+                - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - 
+          PolicyName: !Sub ${ProjectName}-CodeBuildPolicy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetBucketPolicy
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Resource:
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3, '/*']]
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3]]
+              -
+                Effect: Allow
+                Action:
+                  - kms:*
+                Resource: !Ref EncryptionKeyARN
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+              -
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:CompleteLayerUpload
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                  - ecr:BatchDeleteImage
+                  - ecr:GetRepositoryPolicy
+                Resource: !GetAtt ECRrepository.Arn
+
+                
+  # Projet Codebuild :
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-CodeBuild
+      Description: !Sub Projet CodeBuild cree automatiquement pour le pipeline ${ProjectName}-pipeline
+      EncryptionKey: !Ref EncryptionKeyARN
+      ServiceRole: !GetAtt BuildProjectRole.Arn
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: linuxContainer
+        ComputeType: BUILD_GENERAL1_SMALL
+        Image: aws/codebuild/java:openjdk-8
+        PrivilegedMode: true # Obligatoire pour l'utilisation des commandes Docker
+        EnvironmentVariables:
+          - Name: IMAGE_REPO_NAME
+            Value: !Ref ECRRepositoryName
+          - Name: S3_KEY
+            Value: !Ref EncryptionKeyARN
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref "AWS::AccountId"
+      Source:
+        Type: CODEPIPELINE
+      TimeoutInMinutes: 10
+      Tags:
+        - Key: Name
+          Value: !Ref ProjectName
+            
+
+#------------------------------------------------------------------------------------------------------------
+#- CodePipeline ---------------------------------------------------------------------------------------------
+#------------------------------------------------------------------------------------------------------------
+
+  # Role endosse par CodePipeline pour la creation du pipeline :
+  PipelineRole:
+    DependsOn: S3BucketPolicy
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-codepipeline-role
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies: 
+        - 
+          PolicyName: !Sub ${ProjectName}-CodePipelinePolicy
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - codepipeline:*
+                  - iam:ListRoles
+                  - iam:PassRole
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource:
+                  - "*"
+              -
+                Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:DescribeTasks
+                  - ecs:ListTasks
+                  - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
+                Resource:
+                  - "*"
+              -
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: !Ref EncryptionKeyARN
+              -
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetBucketPolicy
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Resource:
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3, '/*']]
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3]]
+                  
+  # Pipeline
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt PipelineRole.Arn
+      Name: !Sub ${ProjectName}-pipeline #!Ref AWS::StackName
+      Stages:
+        - 
+          Name: Source
+          Actions:
+            -
+              Name: GitHub
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: !Ref GitHubUser
+                Repo: !Ref GitHubRepository
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubOAuthToken
+              OutputArtifacts:
+                - Name: SCCheckoutArtifact
+              RunOrder: 1
+        -
+          Name: Build
+          Actions:
+          -
+            Name: Build
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: 1
+              Provider: CodeBuild
+            Configuration:
+              ProjectName: !Ref BuildProject
+            RunOrder: 1
+            InputArtifacts:
+              - Name: SCCheckoutArtifact
+            OutputArtifacts:
+              - Name: BuildOutput
+        -
+          Name: Staging #DeployToECS
+          Actions:
+            - Name: !Sub ${ProjectName}-Stack
+              ActionTypeId:
+                Category: Deploy
+                Owner: AWS
+                Version: 1
+                Provider: ECS
+              Configuration:
+                ClusterName: !Ref FargateCluster
+                ServiceName: custom-service
+                #ServiceName: !Sub ${FargateCluster}-service
+                FileName: imagedefinitions.json
+              InputArtifacts:
+                - Name: BuildOutput
+              RunOrder: 1
+              
+      ArtifactStore:
+        Type: S3
+        Location: !Ref bucketS3
+        EncryptionKey:
+          Id: !Ref EncryptionKeyARN
+          Type: KMS
