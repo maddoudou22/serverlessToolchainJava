@@ -4,18 +4,20 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
-      - echo Starting Docker ...
-      - nohup /usr/local/bin/dockerd --host=unix:///var/run/docker.sock --host=tcp://127.0.0.1:2375 --storage-driver=overlay2&
-      - timeout 15 sh -c "until docker info; do echo .; sleep 1; done"
+      - apt-get update -y
+      - apt-get install docker.io -y
+      - docker -v
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
   build:
     commands:
       - echo Build started on `date`
+      - pip install --upgrade awscli
       - mvn clean package
       - ls .
       - ls target/
       - echo Get project name and version from the pom.xml...
+      - apt-get install libxml2-utils -y
       - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
       - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
