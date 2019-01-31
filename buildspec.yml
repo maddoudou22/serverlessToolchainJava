@@ -6,6 +6,10 @@ phases:
       - echo Pre-Build started on `date`
       - echo Starting Docker ...
       - apt-get install sudo -y
+      - apt-get install apt-transport-https -y
+      - apt-get install ca-certificates -y
+      - apt-get install curl -y 
+      - apt-get install software-properties-common -y
       - sudo usermod -aG docker root
       - whoami
       - sudo service docker start
