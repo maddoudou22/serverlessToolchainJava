@@ -7,6 +7,7 @@ phases:
       - echo Starting Docker ...
       - apt-get install sudo -y
       - sudo usermod -aG docker root
+      - whoami
       - sudo service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
