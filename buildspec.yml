@@ -5,7 +5,9 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       - echo Starting Docker ...
-      - service docker start
+      - apt-get install sudo -y
+      - sudo usermod -aG docker root
+      - sudo service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
   build:
