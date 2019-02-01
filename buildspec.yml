@@ -4,9 +4,7 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
-      - apt-get update -y
-      - apt-get install docker.io -y
-      - docker -v
+      - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
   build:
