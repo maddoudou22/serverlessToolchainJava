@@ -5,7 +5,7 @@ pipeline {
 		package_version = readMavenPom().getVersion()
 		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
 		dockerRepo = "javafargatetoolchain"
-		applicationName = 'serverlessToolchainJava' // Same as artifactId in the pom.xml
+		applicationName = 'serverlessToolchainJava' // Same as artifactId in pom.xml
 		AWS_REGION = "eu-west-1"
 		kubernetesNode = 'rancher.maddoudou.click'
 		deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
