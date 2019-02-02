@@ -3,9 +3,10 @@ pipeline {
 	
 	environment {
 		package_version = readMavenPom().getVersion()
-		dockerRegistry = "devops.maddoudou.click:5000"
-		dockerRepo = "serverlessToolchainJava"
+		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
+		dockerRepo = "javafargatetoolchain"
 		applicationName = 'API-javaSpringboot' // Same as artifactId in pom.xml
+		AWS_REGION = "eu-west-1"
 		kubernetesNode = 'rancher.maddoudou.click'
 		deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
 		deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instace
@@ -50,18 +51,14 @@ pipeline {
         stage('Contract testing') {
             steps {
                 echo 'Testing application conformity according to its Swagger definition ...'
-
             }
         }
 */
         stage('Bake') {
             steps {
                 echo 'Building Docker image ...'
-	  - docker build --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
-      - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION      
-      - echo Pushing the Docker image...
-      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
-				sh 'docker build --rm --build-arg PACKAGE_VERSION=${package_version} --build-arg APPLICATION_NAME=${applicationName} -t ${dockerRegistry}/${dockerRepo}:${package_version} .'
+				sh '$(aws ecr get-login --no-include-email --region $AWS_REGION)'
+				sh 'docker build --build-arg PACKAGE_VERSION=${package_version} --build-arg APPLICATION_NAME=${applicationName} -t ${dockerRegistry}/${dockerRepo}:${package_version} .'
 				echo 'Removing dangling Docker image from the local registry ...'
 				//sh "docker rmi $(docker images --filter "dangling=true" -q --no-trunc) 2>/dev/null"
 				echo 'Publishing Docker image into the private registry ...'
@@ -69,5 +66,5 @@ pipeline {
             }
         }
     }
-/*
+
 }
