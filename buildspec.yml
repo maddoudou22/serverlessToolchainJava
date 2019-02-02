@@ -29,5 +29,10 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
       - echo Writing image definitions file...
       - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION > imagedefinitions.json
+
+cache:
+  paths:
+    - '/root/.m2/**/*'
+    
 artifacts:
     files: imagedefinitions.json
