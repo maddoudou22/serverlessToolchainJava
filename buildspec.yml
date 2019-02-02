@@ -11,7 +11,8 @@ phases:
     commands:
       - echo Build started on `date`
       - pip install --upgrade awscli
-      - mvn clean package
+      - mvn -T 10 -Dmaven.test.skip=true clean package
+      - mvn test
       - ls .
       - ls target/
       - echo Get project name and version from the pom.xml...
