@@ -11,6 +11,7 @@ pipeline {
 		deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
 		deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instace
     }
+	
     stages {
         stage('Build') {
             steps {
