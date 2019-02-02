@@ -17,14 +17,14 @@ pipeline {
             steps {
                 echo 'Building ...'
 				//sh 'mvn -T 10 -Dmaven.test.skip=true clean install'
-				sh 'mvn -T 10 -Dmaven.test.skip=true clean package'
+				sh 'mvn -T 1C -Dmaven.test.skip=true clean package'
             }
         }
 		
 		stage('Unit test') {
             steps {
                 echo 'Unit testing ...'
-				sh 'mvn test'
+				sh 'mvn -T 1C test'
             }
         }
 /*
