@@ -59,6 +59,8 @@
         <java.version>1.8</java.version>
 		<dependency.check.report.dir>${project.build.directory}</dependency.check.report.dir>
 		<sonar.dependencyCheck.htmlReportPath>${project.build.directory}/dependency-check-report.html</sonar.dependencyCheck.htmlReportPath>
+        <sonar.analysis.mode>preview</sonar.analysis.mode>
+        <sonar.issuesReport.html.enable>true</sonar.issuesReport.html.enable>
     </properties>
 
     <build>
