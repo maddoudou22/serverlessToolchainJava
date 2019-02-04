@@ -1,9 +1,16 @@
 version: 0.2
 
+env:
+  variables:
+      EFS_DIR: "/opt/sonar"
+      EFS_DNS: "fs-f446d03c.efs.eu-west-1.amazonaws.com"
+      
 phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
+      - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
+      - /opt/sonar/sonarqube-7.6/bin/linux-x86-64/sonar.sh start
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
@@ -13,6 +20,8 @@ phases:
       - pip install --upgrade awscli
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
+      - mvn dependency-check:check
+      - mvn sonar:sonar
       - du -sh /root/.m2/
       - ls .
       - ls target/
