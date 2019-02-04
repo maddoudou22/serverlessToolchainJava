@@ -4,7 +4,6 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
-      - du -sh /root/.m2/
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
@@ -14,6 +13,7 @@ phases:
       - pip install --upgrade awscli
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
+      - du -sh /root/.m2/
       - ls .
       - ls target/
       - echo Get project name and version from the pom.xml...
