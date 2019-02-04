@@ -9,7 +9,7 @@ pipeline {
 		AWS_REGION = "eu-west-1"
 		kubernetesNode = 'rancher.maddoudou.click'
 		deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
-		deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instace
+		deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instance
     }
 	
     stages {
