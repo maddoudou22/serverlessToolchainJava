@@ -34,7 +34,7 @@ pipeline {
 				sh 'mvn jar:jar deploy:deploy'
             }
         }
-		
+*/		
 		stage('OWASP - Dependencies check') {
             steps {
                 echo 'Check OWASP dependencies ...'
@@ -54,7 +54,7 @@ pipeline {
                 echo 'Testing application conformity according to its Swagger definition ...'
             }
         }
-*/
+
         stage('Bake') {
             steps {
                 echo 'Building Docker image ...'
