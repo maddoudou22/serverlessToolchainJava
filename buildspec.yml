@@ -24,7 +24,7 @@ phases:
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
-      - timeout 30 sh -c 'until pgrep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
+      - timeout 60 sh -c 'until pgrep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - mvn sonar:sonar
       - du -sh /root/.m2/
@@ -39,6 +39,7 @@ phases:
   post_build:
     commands:
       - echo Post-Build started on `date`
+      - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - echo Building the Docker image...
       - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:PACKAGE_VERSION --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
       - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION     
