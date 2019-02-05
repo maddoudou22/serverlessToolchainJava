@@ -22,7 +22,7 @@ phases:
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
-      - sleep 15
+      - sleep 30
       - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - mvn sonar:sonar
       - du -sh /root/.m2/
