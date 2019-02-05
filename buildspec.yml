@@ -11,7 +11,7 @@ phases:
       - echo Pre-Build started on `date`
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
       - chown -R sonar:sonar /opt/sonar
-      - /opt/sonar/sonarqube-7.6/bin/linux-x86-64/sonar.sh start
+      - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
@@ -44,7 +44,7 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
       - echo Writing image definitions file...
       - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION > imagedefinitions.json
-      - /opt/sonar/sonarqube-7.6/bin/linux-x86-64/sonar.sh stop
+      - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh stop
       
       
 cache:
