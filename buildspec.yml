@@ -10,11 +10,13 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
-      - chown -R sonar:sonar /opt/sonar
+#      - chown -R sonar:sonar /opt/sonar
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
+      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+            
   build:
     commands:
       - echo Build started on `date`
@@ -22,7 +24,7 @@ phases:
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
-      - sleep 30
+      - timeout 30 sh -c 'until pgrep [o]rg.sonar.ce.app.CeServer; so sleep 1; done'
       - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - mvn sonar:sonar
       - du -sh /root/.m2/
@@ -33,11 +35,11 @@ phases:
       - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
       - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
+      
   post_build:
     commands:
       - echo Post-Build started on `date`
       - echo Building the Docker image...
-      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true
       - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:PACKAGE_VERSION --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
       - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION     
       - echo Pushing the Docker image...
