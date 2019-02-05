@@ -24,7 +24,7 @@ phases:
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
-      - timeout 30 sh -c 'until pgrep [o]rg.sonar.ce.app.CeServer; so sleep 1; done'
+      - timeout 30 sh -c 'until pgrep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - mvn sonar:sonar
       - du -sh /root/.m2/
