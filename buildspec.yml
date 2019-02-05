@@ -23,7 +23,7 @@ phases:
       - mvn -T 1C test
       - mvn dependency-check:check
       - sleep 15
-      - cat /opt/sonar/sonarqube-7.6/logs/sonar.log
+      - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - mvn sonar:sonar
       - du -sh /root/.m2/
       - ls .
