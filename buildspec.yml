@@ -27,8 +27,8 @@ phases:
       
       - echo Recuperation de la precedente image de l application des maintenant pour gagner du temps dans la phase post-build
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
-      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest || true &
-
+#      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest || true &
+      - docker pull java:8 || true &
  
   build:
     commands:
