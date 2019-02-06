@@ -33,22 +33,20 @@ phases:
   build:
     commands:
       - echo Build started on `date`
- #     - pip install --upgrade awscli
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - ls -l
-      - mvn sonar:sonar -Duser.home=/root/.m2/
+      - mvn sonar:sonar #-Duser.home=/root/.m2/
       - echo Get project name and version from the pom.xml...
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
       
   post_build:
     commands:
       - echo Post-Build started on `date`
-      - echo Verification de la presence de la precedente image docker recuperee en local
-#      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
-#      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $PACKAGE_VERSION; do sleep 1; done'
+#      - echo Verification de la presence de la precedente image docker recuperee en local
+#      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep basis; do sleep 1; done'
       - docker images
       - sed -i "s/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:basis/g" dockerfile
       - cat dockerfile
