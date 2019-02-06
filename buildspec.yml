@@ -9,6 +9,9 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
+      - service docker start
+      
+      - echo demarrage de Sonar
       - usermod -u 1001 sonar
       - groupmod -g 1001 sonar
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
@@ -16,10 +19,16 @@ phases:
       - echo Supression d un eventuel PID subsistant
       - rm -f /opt/sonar/sonarqube-7.3/bin/linux-x86-64/./SonarQube.pid
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
-      - service docker start
-      - echo Logging in to Amazon ECR...
+      
+      - echo Recuperation des metadonnees de l application
+      - apt-get install libxml2-utils -y
+      - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+      - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
+      
+      - echo Recuperation de la precedente image de l application des maintenant pour gagner du temps dans la phase post-build
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
-#      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+
  
   build:
     commands:
@@ -31,9 +40,6 @@ phases:
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - mvn sonar:sonar
       - echo Get project name and version from the pom.xml...
-      - apt-get install libxml2-utils -y
-      - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
-      - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
       
   post_build:
@@ -41,7 +47,7 @@ phases:
       - echo Post-Build started on `date`
       - echo Building the Docker image...
       - echo Verification de la presence de la precedente image docker recuperee en local
-      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+#      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
       - docker images
       - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $PACKAGE_VERSION; do sleep 1; done'
       - docker images
