@@ -31,11 +31,11 @@ phases:
   build:
     commands:
       - echo Build started on `date`
+      - export MAVEN_OPTS="-Dmaven.repo.local=/opt/sonar/sonarqube-7.3/cache"
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
-      - ls -l
       - mvn sonar:sonar -Duser.home=/opt/sonar/sonarqube-7.3/cache/
       - echo Get project name and version from the pom.xml...
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
