@@ -10,12 +10,15 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
-      - chown -R sonar:sonar /opt/sonar/sonarqube-7.3
+      - su sonar
+      - id
+#      - chown -R sonar:sonar /opt/sonar/sonarqube-7.3
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
       - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+      - ./coucou
  
   build:
     commands:
