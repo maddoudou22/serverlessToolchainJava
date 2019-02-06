@@ -38,7 +38,7 @@ phases:
       - mvn dependency-check:check
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - ls -l
-      - mvn sonar:sonar #-Duser.home=/root/.m2/
+      - mvn sonar:sonar -Duser.home=/root/.m2/
       - echo Get project name and version from the pom.xml...
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
       
