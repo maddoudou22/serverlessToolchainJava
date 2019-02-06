@@ -20,7 +20,6 @@ phases:
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       
       - echo Recuperation des metadonnees de l application
-      - apt-get install libxml2-utils -y
       - PACKAGE_VERSION=$(grep -m 1 '<version>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
       - APPLICATION_NAME=$(grep -m 1 '<artifactId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
 #      - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
