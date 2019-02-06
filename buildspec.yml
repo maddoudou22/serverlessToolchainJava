@@ -47,7 +47,7 @@ phases:
       - echo Post-Build started on `date`
       - echo Verification de la presence de la precedente image docker recuperee en local
 #      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
-      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $PACKAGE_VERSION; do sleep 1; done'
+#      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $PACKAGE_VERSION; do sleep 1; done'
       - docker images
       - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:PACKAGE_VERSION --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
       - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
