@@ -19,7 +19,7 @@ phases:
       - service docker start
       - echo Logging in to Amazon ECR...
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
-      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
+#      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true &
  
   build:
     commands:
@@ -41,6 +41,7 @@ phases:
       - echo Post-Build started on `date`
       - echo Building the Docker image...
       - echo Verification de la presence de la precedente image docker recuperee en local
+      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION || true
       - docker images
       - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $PACKAGE_VERSION; do sleep 1; done'
       - docker images
