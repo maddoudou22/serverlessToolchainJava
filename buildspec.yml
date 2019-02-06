@@ -21,6 +21,7 @@ phases:
       
       - echo Recuperation des metadonnees de l application
       - apt-get install libxml2-utils -y
+      - mvn -q -Dexec.executable="echo" -Dexec.args='${project.version}' --non-recursive exec:exec
       - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
       - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       
@@ -31,12 +32,12 @@ phases:
   build:
     commands:
       - echo Build started on `date`
-      - export MAVEN_OPTS="-Dmaven.repo.local=/opt/sonar/sonarqube-7.3/cache"
+#      - export MAVEN_OPTS="-Dmaven.repo.local=/opt/sonar/sonarqube-7.3/cache"
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - mvn -T 1C test
       - mvn dependency-check:check
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
-      - mvn sonar:sonar -Duser.home=/opt/sonar/sonarqube-7.3/cache/
+      - mvn sonar:sonar #-Duser.home=/opt/sonar/sonarqube-7.3/cache/
       - echo Get project name and version from the pom.xml...
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
       
