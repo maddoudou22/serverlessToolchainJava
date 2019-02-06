@@ -21,10 +21,11 @@ phases:
       
       - echo Recuperation des metadonnees de l application
       - apt-get install libxml2-utils -y
-      - mvn help:evaluate -Dexpression=project.version | grep -e '^[^\[]'
-      
-      - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
-      - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
+      - PACKAGE_VERSION=$(mvn help:evaluate -Dexpression=project.version | grep -e '^[^\[]')
+      - APPLICATION_NAME=$(mvn help:evaluate -Dexpression=project.artifactId | grep -e '^[^\[]')
+      - mvn -q -Dexec.executable=echo -Dexec.args='${project.groupId} ${project.artifactId} ${project.version}' --non-recursive exec:exec 2>/dev/null
+#      - PACKAGE_VERSION=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='version']/text()" pom.xml)
+#      - APPLICATION_NAME=$(xmllint --xpath "//*[local-name()='project']/*[local-name()='artifactId']/text()" pom.xml)
       
       - echo Recuperation de la precedente image de l application des maintenant pour gagner du temps dans la phase post-build
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
