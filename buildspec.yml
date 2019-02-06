@@ -15,7 +15,6 @@ phases:
       - usermod -u 1001 sonar
       - groupmod -g 1001 sonar
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
-#      - chown -R sonar:sonar /opt/sonar/sonarqube-7.3
       - echo Supression d un eventuel PID subsistant
       - rm -f /opt/sonar/sonarqube-7.3/bin/linux-x86-64/./SonarQube.pid
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
@@ -28,7 +27,6 @@ phases:
       - echo Recuperation de la precedente image de l application des maintenant pour gagner du temps dans la phase post-build
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
       - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:basis || true &
-#      - docker pull java:8 || true &
  
   build:
     commands:
@@ -38,7 +36,7 @@ phases:
       - mvn dependency-check:check
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - ls -l
-      - mvn sonar:sonar -Duser.home=/root/.m2/
+      - mvn sonar:sonar -Duser.home=/opt/sonar/sonarqube-7.3/cache/
       - echo Get project name and version from the pom.xml...
       - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
       
