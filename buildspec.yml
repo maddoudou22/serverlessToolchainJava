@@ -9,8 +9,11 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
+      - usermod -u 1001 sonar
+      - groupmod -g 1001 sonar
       - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
       - getent passwd
+      - ls -l /opt/sonar/
 #      - chown -R sonar:sonar /opt/sonar/sonarqube-7.3
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       - service docker start
