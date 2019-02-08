@@ -7,7 +7,6 @@ phases:
       - echo "Demarrage de Docker necessaire sur cette image"
       - service docker start
       
-
       - echo "Verification que les UID et GID de Sonar sont bien identiques entre l'image CodeBuild et l'instance EC2 via laquelle Sonar a ete installe, sinon problemes de droits en montage et Sonar ne se lancera pas correctement ..."
       - usermod -u 1001 sonar
       - groupmod -g 1001 sonar
@@ -27,17 +26,7 @@ phases:
       - echo "Si l'image cache n'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee"
       - chmod +x build-docker.sh
       - ./build-docker.sh $IMAGE_REPO_NAME $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID
-      
-      - sleep 120
-      - jobs
-      - docker images
-      - sleep 60
-      - jobs
-      - docker images
-      - sleep 60
-      - jobs
-      - docker images
- 
+       
   build:
     commands:
       - echo Build started on `date`
