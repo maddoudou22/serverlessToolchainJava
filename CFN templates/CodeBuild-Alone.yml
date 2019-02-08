@@ -211,6 +211,7 @@ Resources:
                   - ecr:DescribeImages
                   - ecr:BatchDeleteImage
                   - ecr:GetRepositoryPolicy
+                  - ecr:ListImages
                 Resource: !GetAtt ECRrepository.Arn
 
   
