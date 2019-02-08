@@ -1,0 +1,29 @@
+FROM ubuntu:18.04
+
+RUN apt-get update
+RUN apt-get install -y tzdata
+RUN ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
+RUN dpkg-reconfigure --frontend noninteractive tzdata
+RUN apt-get install curl apt-transport-https software-properties-common -y
+RUN curl -fsSL https://download.docker.com/linux/ubuntu/gpg | apt-key add -
+RUN add-apt-repository "deb [arch=amd64] https://download.docker.com/linux/ubuntu bionic stable"
+RUN apt-get update
+RUN apt-cache policy docker-ce
+RUN apt-get install docker-ce -y
+RUN apt-get install openjdk-8-jdk -y
+RUN apt-get install nfs-common -y
+RUN echo "JAVA_HOME=\"/usr/lib/jvm/java-8-openjdk-amd64/jre/bin/java\"" >> /etc/environment
+RUN apt-get install maven -y
+RUN apt-get install python2.7 -y
+RUN curl -O https://bootstrap.pypa.io/get-pip.py
+RUN python2.7 get-pip.py
+RUN pip install awscli
+RUN adduser --disabled-password --gecos "" sonar \
+    && mkdir /opt/sonar \
+    && chown sonar:sonar /opt/sonar
+RUN apt-get purge -y curl \
+        software-properties-common \
+        python2.7
+RUN apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+	
