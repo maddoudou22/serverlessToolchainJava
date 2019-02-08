@@ -1,0 +1,270 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: serverless Toolchain - DAN
+
+
+Parameters:
+  VPCName:
+    Description: Nom du VPC a creer
+    Type: String
+    Default: 'serverlessToolchain_VPC_CFN'
+  VPCCidrBlock:
+    Type: String
+    Description: 'Plage IP allouee au VPC en /16 (Exemple: 172.30.0.0/16)'
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 172.30.0.0/16
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.0\.0/16'
+    ConstraintDescription: Doit etre un block CIDR valide en /16
+  PublicSubnetName:
+    Description: Nom du subnet Public sur lequel la NAT Gateway est attachee.
+    Type: String
+    Default: 'serverlessToolchain_PublicSubnet_CFN'
+  PublicSubnetCIDR:
+    Type: String
+    Description: 'Plage IP allouee au subnet public en /24 (Exemple: 172.30.1.0/24)'
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 172.30.1.0/24
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.0/24'
+    #AllowedPattern: '((\d{1,3})\.){3}\d{1,3}/\d{1,2}'
+    ConstraintDescription: Doit etre un block CIDR valide en /24
+  PrivateSubnetName:
+    Description: Nom du subnet Prive dans lequel Codebuild instancie son image Docker pour le build et subnet d'acces au moint de montage EFS.
+    Type: String
+    Default: 'serverlessToolchain_PrivateSubnet_CFN'
+  PrivateSubnetCIDR:
+    Type: String
+    Description: 'Plage IP allouee au subnet prive en /24 (Exemple: 172.30.2.0/24)'
+    MinLength: '9'
+    MaxLength: '18'
+    Default: 172.30.2.0/24
+    AllowedPattern: '(\d{1,3})\.(\d{1,3})\.(\d{1,3})\.0/24'
+    ConstraintDescription: Doit etre un block CIDR valide en /24
+  PublicRouteTableName:
+    Description: Nom de la table de routage associee au subnet public 'CodebuildPublicSubnet'.
+    Type: String
+    Default: 'serverlessToolchain_PublicRouteTable_CFN'
+  PrivateRouteTableName:
+    Description: Nom de la table de routage associee au subnet prive 'CodebuildPrivateSubnet'.
+    Type: String
+    Default: 'serverlessToolchain_PrivateRouteTable_CFN'
+  InternetGatewayName:
+    Description: Nom de l'Internet Gateway associee au VPC.
+    Type: String
+    Default: 'serverlessToolchain_IGW_CFN'
+  PrivateSGName:
+    Description: Nom du Security Group associe a CodeBuild pour la recuperation des sources Git en HTTPS.
+    Type: String
+    Default: 'serverlessToolchain_CodeBuild-SG_CFN'
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Configuration reseau
+      Parameters:
+      - VPCCidrBlock
+      - PublicSubnetCIDR
+      - PrivateSubnetCIDR
+    ParameterLabels:
+      VPCCidrBlock:
+        default: Plage IP du VPC
+      PublicSubnetCIDR:
+        default: Plage IP du subnet public
+      PrivateSubnetCIDR:
+        default: Plage IP du subnet prive
+
+    
+#--------------------------------------------------------------------------------
+    
+Resources:
+
+#--------------------------------------------------------------------------------
+# Configuration du reseau
+#--------------------------------------------------------------------------------
+
+# VPC ---------------------
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      EnableDnsSupport: "true"
+      EnableDnsHostnames: "true"
+      CidrBlock: !Ref VPCCidrBlock
+      Tags:
+      - Key: "Application"
+        Value: !Ref 'AWS::StackId'
+        Value: !Sub ${VPCName}
+
+# Subnets ---------------------
+  PublicSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [1, !GetAZs ""]
+      CidrBlock: !Ref PublicSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "Application"
+          Value: !Ref 'AWS::StackId'
+          Value: !Sub ${PublicSubnetName}
+          
+  PrivateSubnet:
+    Type: AWS::EC2::Subnet
+    Properties:
+      VpcId: !Ref VPC
+      AvailabilityZone: !Select [0, !GetAZs ""]
+      CidrBlock: !Ref PrivateSubnetCIDR
+      MapPublicIpOnLaunch: false
+      Tags:
+        - Key: "Application"
+          Value: !Ref 'AWS::StackId'
+          Value: !Sub ${PrivateSubnetName}
+
+# Internet Gateway ---------------------
+  InternetGateway:
+    Type: AWS::EC2::InternetGateway
+    Properties:
+      Tags:
+        - Key: "Application"
+          Value: !Sub ${InternetGatewayName}
+  InternetGatewayAttachment:
+    Type: AWS::EC2::VPCGatewayAttachment
+    Properties:
+      InternetGatewayId: !Ref InternetGateway
+      VpcId: !Ref VPC
+      
+# NAT Gateway ---------------------
+  NatGateway:
+    Type: AWS::EC2::NatGateway
+    Properties:
+      AllocationId: !GetAtt NatGatewayEIP.AllocationId
+      SubnetId: !Ref PublicSubnet
+
+  NatGatewayEIP:
+    Type: AWS::EC2::EIP
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      Domain: vpc
+      
+# Route Tables ---------------------      
+  PublicRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Application"
+          Value: !Ref 'AWS::StackId'
+          Value: !Sub ${PublicRouteTableName}
+  DefaultPublicRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref InternetGateway
+  PublicSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PublicRouteTable
+      SubnetId: !Ref PublicSubnet
+
+  PrivateRouteTable:
+    Type: AWS::EC2::RouteTable
+    Properties:
+      VpcId: !Ref VPC
+      Tags:
+        - Key: "Application"
+          Value: !Ref 'AWS::StackId'
+          Value: !Sub ${PrivateRouteTableName}
+  DefaultPrivateRoute:
+    Type: AWS::EC2::Route
+    DependsOn: InternetGatewayAttachment
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref NatGateway
+  PrivateSubnetRouteTableAssociation:
+    Type: AWS::EC2::SubnetRouteTableAssociation
+    Properties:
+      RouteTableId: !Ref PrivateRouteTable
+      SubnetId: !Ref PrivateSubnet
+      
+# Security Group ---------------------
+  CodeBuildSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId: !Ref 'VPC'
+      GroupDescription: !Sub ${PrivateSGName}
+      SecurityGroupIngress:
+      # NFS:
+      - IpProtocol: tcp
+        FromPort: '2049'
+        ToPort: '2049'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '111'
+        ToPort: '111'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        FromPort: '2049'
+        ToPort: '2049'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        FromPort: '111'
+        ToPort: '111'
+        CidrIp: 0.0.0.0/0
+      # Pour tests : A SUPPRIMER :
+#      - IpProtocol: tcp
+#        FromPort: 0
+#        ToPort: 65535
+#        CidrIp: 0.0.0.0/0
+      SecurityGroupEgress:
+      # HTTPS:
+      - IpProtocol: tcp
+        FromPort: '443'
+        ToPort: '443'
+        CidrIp: 0.0.0.0/0
+      # NFS:
+      - IpProtocol: tcp
+        FromPort: '2049'
+        ToPort: '2049'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: tcp
+        FromPort: '111'
+        ToPort: '111'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        FromPort: '2049'
+        ToPort: '2049'
+        CidrIp: 0.0.0.0/0
+      - IpProtocol: udp
+        FromPort: '111'
+        ToPort: '111'
+        CidrIp: 0.0.0.0/0
+      # Pour tests : A SUPPRIMER :
+#      - IpProtocol: tcp
+#        FromPort: 0
+#        ToPort: 65535
+#        CidrIp: 0.0.0.0/0
+      Tags:
+      Tags:
+        - Key: "Application"
+          Value: !Ref 'AWS::StackId'
+          Value: !Sub ${PrivateSGName}
+
+        
+
+          
+        
+
+#--------------------------------------------------------------------------------
+# Configuration de CodeBuild
+#--------------------------------------------------------------------------------
+
+
+
+#--------------------------------------------------------------------------------
+# OUTPUTS
+#--------------------------------------------------------------------------------        
+        
+

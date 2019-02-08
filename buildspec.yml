@@ -4,6 +4,8 @@ env:
   variables:
       EFS_DIR: "/opt/sonar"
       EFS_DNS: "fs-98eb7a50.efs.eu-west-1.amazonaws.com"
+      DOCKER_CACHE_IMAGE: "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME"
+      DOCKER_CACHE_VERSION: "latest"
       
 phases:
   pre_build:
@@ -27,7 +29,8 @@ phases:
       
       - echo Recuperation de la precedente image de l application des maintenant pour gagner du temps dans la phase post-build
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
-      - docker pull $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:basis || true &
+      - chmod +x check_docker-cache-image.sh
+      - if ! docker pull $DOCKER_CACHE_IMAGE:$DOCKER_CACHE_VERSION || true &; then ./check_docker-cache-image.sh; fi
  
   build:
     commands:
@@ -44,12 +47,9 @@ phases:
   post_build:
     commands:
       - echo Post-Build started on `date`
-#      - echo Verification de la presence de la precedente image docker recuperee en local
-#      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep basis; do sleep 1; done'
-      - docker images
-      - sed -i "s/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:basis/g" dockerfile
-      - cat dockerfile
-      - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:basis --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
+      - echo Verification de la presence de l'image Docker cache en local
+      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep latest; do sleep 1; done'
+      - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $IMAGE_REPO_NAME:$PACKAGE_VERSION .
       - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
       - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
       - echo Pushing the Docker image...

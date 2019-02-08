@@ -1,0 +1,383 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: serverless Toolchain pour une application Java - DAN
+
+
+Parameters:
+
+# CodeBuild parameters -------------------------------------------------
+
+  ProjectName:
+    Description: Nom du projet utilise pour tagger les ressources creees
+    Type: String
+    Default: "serverlessToolchainJava"
+    
+  ECRRepositoryURL:
+    Description: URL du repository cree dans ECR hebergeant les images Docker generee durant l'etape de Post-Build de CodeBuild
+    Type: String
+    Default: "962109799108.dkr.ecr.eu-west-1.amazonaws.com/"
+    
+  ApplicationImageRepository:
+    Description: Nom de l'image Docker generee durant l'etape de Post-Build de CodeBuild
+    Type: String
+    Default: "serverlesstoolchainjava"
+    
+  DockerCodebuildImage:
+    Description: Image Docker (et version) utilisee par CodeBuild pour builder l'application
+    Type: String
+    Default: "codebuild-custom-java:0.3"
+    
+  bucketS3:
+    Description: "Bucket contenant les artefacts de l'application pour leur integration et leur deploiement (codes source et imagedefinitions des conteneurs requis)."
+    Type: 'String'
+    Default: "serverlesstoolchainjava"
+    AllowedPattern: '[a-z0-9]+'
+    
+  CodeBuildCacheLocation:
+    Description: "Bucket contenant le cache des dependances et plugins de Maven pour le build"
+    Type: 'String'
+    Default: "/cache/archives"
+
+  EncryptionKeyARN:
+    Description: ARN de la cle CMK KMS utilisee pour chiffrer le bucket S3 (imperatif pour l'utilisation avec CodeBuild). Si la cle par defaut "arn:aws:kms:eu-west-1:962109799108:alias/aws/s3" n'existe pas, elle sera creee automatiquement par S3.
+    Type: String
+    Default: "arn:aws:kms:eu-west-1:962109799108:alias/aws/s3"
+
+  GitHubUser:
+    Description: Nom d'utilisateur GitHub.
+    Type: String
+    Default: "maddoudou22"
+    
+  GitHubRepository:
+    Description: Nom du projet declare dans GitHub.
+    Type: String
+    Default: "serverlessToolchainJava"
+    
+  GitHubBranch:
+    Description: Branch utilisee dans GitHub.
+    Type: String
+    Default: "master"
+    
+  GitHubOAuthToken:
+    Description: Token Oauth de GitHub. (A generer et recuperer depuis GitHub dans Settings -> Developer Settings -> Personnal Access Tokens)
+    Type: String
+    Default: ""
+    
+    
+# Network parameters -------------------------------------------------
+  VPCID:
+    Description: ID du VPC a creer
+    Type: String
+    Default: 'vpc-06d6b5d796206a334'
+    
+  PrivateSubnetID:
+    Description: ID du subnet Prive dans lequel Codebuild instancie son image Docker pour le build et subnet d'acces au moint de montage EFS.
+    Type: String
+    Default: 'subnet-0ec04d560325cc884'
+    
+  PrivateSGID:
+    Description: ID du Security Group associe a CodeBuild pour la recuperation des sources Git en HTTPS.
+    Type: String
+    Default: 'sg-0284df363191d517c'
+
+    
+#--------------------------------------------------------------------------------
+# INTERFACE
+#--------------------------------------------------------------------------------
+
+Metadata:
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+    - Label:
+        default: Configuration de Codebuild
+      Parameters:
+      - ECRRepositoryURL
+      - ApplicationImageRepository
+      - DockerCodebuildImage
+      
+    ParameterLabels:
+      ECRRepositoryURL:
+        default: "URL du repository cree dans ECR hebergeant les images Docker generee durant l'etape de Post-Build de CodeBuild"
+      ApplicationImageRepository:
+        default: "Nom de l'image Docker generee durant l'etape de Post-Build de CodeBuild"
+      DockerCodebuildImage:
+        default: "Image Docker (et version) utilisee par CodeBuild pour builder l'application"
+
+    
+#--------------------------------------------------------------------------------
+# RESSOURCES
+#--------------------------------------------------------------------------------
+    
+Resources:
+
+#--------------------------------------------------------------------------------
+# Configuration de CodeBuild
+#--------------------------------------------------------------------------------
+
+  # Creation du bucket lui-meme :
+  ArtefactsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Ref bucketS3
+      AccessControl: Private
+
+      
+  # Policy associee au bucket :
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    #Si la Policy est créée avant le bucket la création de la stack échoue :
+    DependsOn: ArtefactsBucket
+    Properties:
+      Bucket: !Ref bucketS3
+      PolicyDocument:
+        Statement:
+          -
+            Action:
+              - s3:*
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${bucketS3}
+              - !Sub arn:aws:s3:::${bucketS3}/*
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+                - codebuild.amazonaws.com
+                
+  # Role endosse par CodeBuild pour la creation du projet Codebuild :
+  BuildProjectRole: 
+    Type: "AWS::IAM::Role"
+    Properties: 
+      RoleName: !Sub ${ProjectName}-CodeBuildRole-CFN
+      AssumeRolePolicyDocument: 
+        Version: "2012-10-17"
+        Statement: 
+          #
+          - Effect: "Allow"
+            Principal:
+              Service:
+                - codebuild.amazonaws.com
+            Action: 
+                - "sts:AssumeRole"
+      Path: "/"
+      Policies: 
+        - 
+          PolicyName: !Sub ${ProjectName}-CodeBuildPolicy-CFN
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetBucketPolicy
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Resource:
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3, '/*']]
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3]]
+              -
+                Effect: Allow
+                Action:
+                  - kms:*
+                Resource: !Ref EncryptionKeyARN
+              -
+                Effect: Allow
+                Action:
+                  - EC2:*
+                  # Tentative d'affinage des droits : erreur "VPC_CLIENT_ERROR: Unexpected EC2 error: UnauthorizedOperation" sans plus d'explications ...
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - logs:CreateLogGroup
+                  - logs:CreateLogStream
+                  - logs:PutLogEvents
+                Resource: !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/codebuild/*"
+              -
+                Effect: Allow
+                Action:
+                  - ecr:GetAuthorizationToken
+                Resource: "*"
+              -
+                Effect: Allow
+                Action:
+                  - ecr:BatchCheckLayerAvailability
+                  - ecr:CompleteLayerUpload
+                  - ecr:InitiateLayerUpload
+                  - ecr:PutImage
+                  - ecr:UploadLayerPart
+                  - ecr:GetDownloadUrlForLayer
+                  - ecr:BatchGetImage
+                  - ecr:DescribeImages
+                  - ecr:BatchDeleteImage
+                  - ecr:GetRepositoryPolicy
+                Resource: !GetAtt ECRrepository.Arn
+
+  
+  # Repository ECR :
+  ECRrepository:
+    Type: AWS::ECR::Repository
+    Properties: 
+      RepositoryName: !Ref ApplicationImageRepository
+  
+  
+  # Projet Codebuild :
+  BuildProject:
+    Type: AWS::CodeBuild::Project
+    Properties:
+      Name: !Sub ${ProjectName}-CodeBuild-CFN
+      Description: !Sub Projet CodeBuild cree automatiquement pour le pipeline ${ProjectName}-pipeline-CFN
+      EncryptionKey: !Ref EncryptionKeyARN
+      ServiceRole: !GetAtt BuildProjectRole.Arn
+      Source:
+        Type: CODEPIPELINE
+      Artifacts:
+        Type: CODEPIPELINE
+      Environment:
+        Type: linuxContainer
+        ComputeType: BUILD_GENERAL1_MEDIUM
+        Image: !Sub '${ECRRepositoryURL}${DockerCodebuildImage}'
+        PrivilegedMode: true # Obligatoire pour l'utilisation des commandes Docker
+        EnvironmentVariables:
+          - Name: IMAGE_REPO_NAME
+            Value: !Ref ApplicationImageRepository
+          - Name: S3_KEY
+            Value: !Ref EncryptionKeyARN
+          - Name: AWS_ACCOUNT_ID
+            Value: !Ref "AWS::AccountId"
+      VpcConfig:
+        SecurityGroupIds: 
+          - !Sub ${PrivateSGID}
+        Subnets:
+          - !Sub ${PrivateSubnetID}
+        VpcId: !Sub ${VPCID}
+      Cache:
+        Type: S3
+        Location: !Sub '${bucketS3}${CodeBuildCacheLocation}'
+      TimeoutInMinutes: 10
+      Tags:
+        - Key: Name
+          Value: !Ref ProjectName
+            
+
+#- CodePipeline ---------------------------------------------------------------------------------------------
+
+  # Role endosse par CodePipeline pour la creation du pipeline :
+  PipelineRole:
+    DependsOn: S3BucketPolicy
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: !Sub ${ProjectName}-codepipeline-role-CFN
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          -
+            Effect: Allow
+            Principal:
+              Service:
+                - codepipeline.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Path: /
+      Policies: 
+        - 
+          PolicyName: !Sub ${ProjectName}-CodePipelinePolicy-CFN
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              -
+                Effect: Allow
+                Action:
+                  - codepipeline:*
+                  - iam:ListRoles
+                  - iam:PassRole
+                  - codecommit:GetCommit
+                  - codecommit:UploadArchive
+                  - codebuild:BatchGetBuilds
+                  - codebuild:StartBuild
+                Resource:
+                  - "*"
+              -
+                Effect: Allow
+                Action:
+                  - ecs:DescribeServices
+                  - ecs:DescribeTaskDefinition
+                  - ecs:DescribeTasks
+                  - ecs:ListTasks
+                  - ecs:RegisterTaskDefinition
+                  - ecs:UpdateService
+                Resource:
+                  - "*"
+              -
+                Effect: Allow
+                Action:
+                  - kms:Decrypt
+                Resource: !Ref EncryptionKeyARN
+              -
+                Effect: Allow
+                Action:
+                  - s3:PutObject
+                  - s3:GetBucketPolicy
+                  - s3:GetObject
+                  - s3:GetObjectVersion
+                  - s3:ListBucket
+                Resource:
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3, '/*']]
+                 - !Join ['',['arn:aws:s3:::',!Ref bucketS3]]
+                  
+  # Pipeline
+  Pipeline:
+    Type: AWS::CodePipeline::Pipeline
+    Properties:
+      RoleArn: !GetAtt PipelineRole.Arn
+      Name: !Sub ${ProjectName}-pipeline-CFN #!Ref AWS::StackName
+      Stages:
+        - 
+          Name: Source
+          Actions:
+            -
+              Name: GitHub
+              ActionTypeId:
+                Category: Source
+                Owner: ThirdParty
+                Version: 1
+                Provider: GitHub
+              Configuration:
+                Owner: !Ref GitHubUser
+                Repo: !Ref GitHubRepository
+                Branch: !Ref GitHubBranch
+                OAuthToken: !Ref GitHubOAuthToken
+              OutputArtifacts:
+                - Name: SCCheckoutArtifact
+              RunOrder: 1
+        -
+          Name: Build
+          Actions:
+          -
+            Name: Build
+            ActionTypeId:
+              Category: Build
+              Owner: AWS
+              Version: 1
+              Provider: CodeBuild
+            Configuration:
+              ProjectName: !Ref BuildProject
+            RunOrder: 1
+            InputArtifacts:
+              - Name: SCCheckoutArtifact
+            OutputArtifacts:
+              - Name: BuildOutput
+              
+      ArtifactStore:
+        Type: S3
+        Location: !Ref bucketS3
+        EncryptionKey:
+          Id: !Ref EncryptionKeyARN
+          Type: KMS
+                
+
+#--------------------------------------------------------------------------------
+# OUTPUTS
+#--------------------------------------------------------------------------------        
+        
+
