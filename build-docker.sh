@@ -11,11 +11,6 @@ accountid=$5
 if ! aws ecr list-images --region $region --registry-id $accountid --repository-name $cache_image_name | grep $cache_image_version
   then
     echo "Image cache non trouvee. Reconstruction ..."
-	echo dockerfile_basis - $dockerfile_basis
-	echo accountid - $accountid
-	echo region - $region
-	echo cache_image_name - $cache_image_name
-	echo cache_image_version - $cache_image_version
     docker build -f $dockerfile_basis -t $accountid.dkr.ecr.$region.amazonaws.com/$cache_image_name:$cache_image_version . &
   else
     docker pull $accountid.dkr.ecr.$region.amazonaws.com/$cache_image_name:$cache_image_version &

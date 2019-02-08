@@ -27,6 +27,16 @@ phases:
       - echo "Si l'image cache n'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee"
       - chmod +x build-docker.sh
       - ./build-docker.sh $IMAGE_REPO_NAME $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID
+      
+      - sleep 120
+      - jobs
+      - docker images
+      - sleep 60
+      - jobs
+      - docker images
+      - sleep 60
+      - jobs
+      - docker images
  
   build:
     commands:
