@@ -50,7 +50,7 @@ phases:
       - echo Verification de la presence de l image Docker cache en local
       - docker images
       - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done'
-      - sed -i.bak 's/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION/g' dockerfile
+      - sed -i.bak "s/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION/g" dockerfile
       - cat dockerfile
       - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION .
 #      - docker tag $IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
