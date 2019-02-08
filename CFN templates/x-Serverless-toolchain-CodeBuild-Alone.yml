@@ -26,12 +26,27 @@ Parameters:
     Type: String
     Default: "codebuild-custom-java:0.3"
     
+  DockerCacheImageVersion:
+    Description: Version de l'image Docker utilisee comme base initiale pour la construction de l'image Docker de l'application.
+    Type: String
+    Default: "latest"
+    
   bucketS3:
     Description: "Bucket contenant les artefacts de l'application pour leur integration et leur deploiement (codes source et imagedefinitions des conteneurs requis)."
     Type: 'String'
     Default: "serverlesstoolchainjava"
     AllowedPattern: '[a-z0-9]+'
     
+  EFSDIR:
+  Description: "Repertoire de Sonar a monter sur l'image executee par CodeBuild."
+    Type: 'String'
+    Default: "/opt/sonar"
+    
+  EFSDNS: 
+  Description: "EndPoint EFS requis pour monter le filesystem."
+    Type: 'String'
+    Default: ""
+      
   CodeBuildCacheLocation:
     Description: "Bucket contenant le cache des dependances et plugins de Maven pour le build"
     Type: 'String'
@@ -93,6 +108,8 @@ Metadata:
       - ECRRepositoryURL
       - ApplicationImageRepository
       - DockerCodebuildImage
+      - GitHubOAuthToken
+      - EFSDNS
       
     ParameterLabels:
       ECRRepositoryURL:
@@ -101,7 +118,10 @@ Metadata:
         default: "Nom de l'image Docker generee durant l'etape de Post-Build de CodeBuild"
       DockerCodebuildImage:
         default: "Image Docker (et version) utilisee par CodeBuild pour builder l'application"
-
+      GitHubOAuthToken:
+        default: "Token GitHub utilise par CodeBuild pour la recuperation des sources"
+      EFSDNS:
+         default: "Endpoint (nom DNS) du filesystem EFS hebergeant les repertoire de Sonar)"
     
 #--------------------------------------------------------------------------------
 # RESSOURCES
@@ -246,6 +266,12 @@ Resources:
             Value: !Ref EncryptionKeyARN
           - Name: AWS_ACCOUNT_ID
             Value: !Ref "AWS::AccountId"
+          - Name: DOCKER_CACHE_IMAGE_VERSION
+            Value: !Ref DockerCacheImageVersion
+          - Name: EFS_DIR
+            Value: !Ref EFSDIR
+          - Name: EFS_DNS
+            Value: !Ref EFSDNS
       VpcConfig:
         SecurityGroupIds: 
           - !Sub ${PrivateSGID}
