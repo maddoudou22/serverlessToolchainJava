@@ -6,7 +6,6 @@ phases:
       - echo Pre-Build started on `date`
       - echo "Demarrage de Docker necessaire sur cette image"
       - service docker start
-      
 
       - echo "Verification que les UID et GID de Sonar sont bien identiques entre l'image CodeBuild et l'instance EC2 via laquelle Sonar a ete installe, sinon problemes de droits en montage et Sonar ne se lancera pas correctement ..."
       - usermod -u 1001 sonar
