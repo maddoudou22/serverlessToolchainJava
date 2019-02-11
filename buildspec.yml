@@ -33,7 +33,7 @@ phases:
     commands:
       - echo Post-Build started on `date`
       - echo "Verification de la presence de l'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)"
-      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done'
+      - timeout -t 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done'
       - echo "Modification du dockerfile pour y indiquer l'image de base a utiliser pour le build afin de beneficier des layer mis en cache localement"
       - sed -i.bak "s/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION/g" dockerfile
       - echo "Build de l'image Docker de l'application a partir de l'image de base pour accelerer le processus - Les 3/4 des donnees sont deja en cache"
