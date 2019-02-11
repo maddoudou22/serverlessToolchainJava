@@ -11,6 +11,8 @@ phases:
       - PACKAGE_VERSION=$(grep -m 1 '<version>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
       - APPLICATION_NAME=$(grep -m 1 '<artifactId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
       
+      - dockerd &
+      
       - echo "Recuperation de la precedente image de l application (base initiale) des maintenant pour gagner du temps dans la phase post-build. En arriere plan afin de paralleliser cette action et le demarrage de Sonar"
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
       - echo "Si l'image cache n'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee"
