@@ -70,7 +70,7 @@ pipeline {
 			    sh 'echo \"Verification de la presence de l\'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)\"'
 				sh 'timeout 60 sh -c \'until docker images | grep $dockerRepo | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done\''
 				sh 'echo \"Modification du dockerfile pour y indiquer l\'image de base a utiliser pour le build afin de beneficier des layer mis en cache localement\"'
-				sh 'sed -i.bak \"s/BASIS_IMAGE/$dockerRegistry\/$dockerRepo:$DOCKER_CACHE_IMAGE_VERSION/g\" dockerfile'
+				sh 'sed -i.bak \"s#BASIS_IMAGE#$dockerRegistry/$dockerRepo:$DOCKER_CACHE_IMAGE_VERSION#g\" dockerfile'
                 echo 'Building Docker image ...'
 				sh '$(aws ecr get-login --no-include-email --region $AWS_REGION)'
 				sh 'docker build --build-arg PACKAGE_VERSION=${package_version} --build-arg APPLICATION_NAME=${applicationName} -t ${dockerRegistry}/${dockerRepo}:${package_version} .'
