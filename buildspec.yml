@@ -5,16 +5,24 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       - echo "Demarrage de Docker necessaire sur cette image"
-      - service docker start
-
-      - echo "Verification que les UID et GID de Sonar sont bien identiques entre l'image CodeBuild et l'instance EC2 via laquelle Sonar a ete installe, sinon problemes de droits en montage et Sonar ne se lancera pas correctement ..."
-      - usermod -u 1001 sonar
-      - groupmod -g 1001 sonar
-      - echo "Montage du volume EFS contenant le repertoire de Sonar"
-      - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
-      - echo "Supression d un eventuel PID subsistant"
-      - rm -f /opt/sonar/sonarqube-7.3/bin/linux-x86-64/./SonarQube.pid
+#      - service docker start
+      - echo "Installation et demarrage de Sonar"
+      - mkdir /opt/sonar
+      - cd /opt/sonar
+      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
+      - unzip sonarqube-7.3.zip
+      - adduser --disabled-password --gecos "" sonar 
+      - sed /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh  RUN_AS_USER
+      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=root/g' /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh
+#      - echo "Verification que les UID et GID de Sonar sont bien identiques entre l'image CodeBuild et l'instance EC2 via laquelle Sonar a ete installe, sinon problemes de droits en montage et Sonar ne se lancera pas correctement ..."
+#      - usermod -u 1001 sonar
+#      - groupmod -g 1001 sonar
+#      - echo "Montage du volume EFS contenant le repertoire de Sonar"
+#      - mount -t nfs4 -o nfsvers=4.1,rsize=1048576,wsize=1048576,hard,timeo=600,retrans=2 $EFS_DNS:/ $EFS_DIR
+#      - echo "Supression d un eventuel PID subsistant"
+#      - rm -f /opt/sonar/sonarqube-7.3/bin/linux-x86-64/./SonarQube.pid
       - echo "demarrage de Sonar"
+      - chown -R sonar:sonar /opt/sonar
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       
       - echo "Recuperation des metadonnees de l application (version et nom du package)"
