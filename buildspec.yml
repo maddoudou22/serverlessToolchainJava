@@ -44,6 +44,7 @@ phases:
       - echo "Demarrage des tests OWASP ..."
       - mvn dependency-check:check
       - echo "Attente du demarrage de Sonar ..."
+      - cat /opt/sonar/sonarqube-7.3/logs/sonar.log
       - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
       - echo "Demarrage des tests Sonar ..."
       - mvn sonar:sonar #-Duser.home=/opt/sonar/sonarqube-7.3/cache/
