@@ -8,9 +8,8 @@ phases:
 #      - service docker start
       - echo "Installation et demarrage de Sonar"
       - mkdir /opt/sonar
-      - cd /opt/sonar
       - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
-      - unzip sonarqube-7.3.zip
+      - unzip sonarqube-7.3.zip -d /opt/sonar/
       - adduser --disabled-password --gecos "" sonar 
       - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=root/g' /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh
 #      - echo "Verification que les UID et GID de Sonar sont bien identiques entre l'image CodeBuild et l'instance EC2 via laquelle Sonar a ete installe, sinon problemes de droits en montage et Sonar ne se lancera pas correctement ..."
