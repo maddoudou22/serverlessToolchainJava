@@ -18,7 +18,7 @@ pipeline {
             steps {
                 echo 'Getting previous image ...'
 				sh 'mvn -T 1C -Dmaven.test.skip=true clean package'
-				sh 'echo \"Si l'image cache n'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
+				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
 				sh './build-docker.sh $IMAGE_REPO_NAME $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID'
             }
