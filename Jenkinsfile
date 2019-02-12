@@ -4,7 +4,7 @@ pipeline {
 	environment {
 		package_version = readMavenPom().getVersion()
 		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
-		dockerRepo = "javafargatetoolchain"
+		dockerRepo = "serverlesstoolchainjava"
 		applicationName = 'serverlessToolchainJava' // Same as artifactId in pom.xml
 		AWS_REGION = "eu-west-1"
 		kubernetesNode = 'rancher.maddoudou.click'
@@ -48,19 +48,19 @@ pipeline {
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
             }
         }
-		
+/*		
         stage('Contract testing') {
             steps {
                 echo 'Testing application conformity according to its Swagger definition ...'
             }
         }
-
+*/
         stage('Bake') {
             steps {
                 echo 'Building Docker image ...'
 				sh '$(aws ecr get-login --no-include-email --region $AWS_REGION)'
 				sh 'docker build --build-arg PACKAGE_VERSION=${package_version} --build-arg APPLICATION_NAME=${applicationName} -t ${dockerRegistry}/${dockerRepo}:${package_version} .'
-				echo 'Removing dangling Docker image from the local registry ...'
+				//echo 'Removing dangling Docker image from the local registry ...'
 				//sh "docker rmi $(docker images --filter "dangling=true" -q --no-trunc) 2>/dev/null"
 				echo 'Publishing Docker image into the private registry ...'
 				sh 'docker push ${dockerRegistry}/${dockerRepo}:${package_version}'
