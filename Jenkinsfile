@@ -5,8 +5,8 @@ pipeline {
 		package_version = readMavenPom().getVersion()
 		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
 		DOCKER_CACHE_IMAGE_VERSION = "latest"
-		dockerRepo = "serverlesstoolchainjava"
-		applicationName = 'serverlessToolchainJava' // Same as artifactId in pom.xml
+		dockerRepo = "repo-jenkinsci"
+		applicationName = 'repo-jenkinsci' // Same as artifactId in pom.xml
 		AWS_REGION = "eu-west-1"
 		AWS_ACCOUNT_ID = "962109799108"
 		kubernetesNode = 'rancher.maddoudou.click'
@@ -18,7 +18,6 @@ pipeline {
 	    stage('Prepa baking') {
             steps {
                 echo 'Getting previous image ...'
-				sh 'mvn -T 1C -Dmaven.test.skip=true clean package'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
 				sh './build-docker.sh $dockerRepo $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID'
