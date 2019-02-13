@@ -1,0 +1,66 @@
+version: 0.2
+
+phases:
+  pre_build:
+    commands:
+      - echo Pre-Build started on `date`
+      - echo "Installation de Sonar"
+      - mkdir /opt/sonar
+      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
+      - unzip sonarqube-7.3.zip -d /opt/sonar/
+      - adduser --disabled-password --gecos "" sonar 
+      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=sonar/g' /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh
+      - chown -R sonar:sonar /opt/sonar
+      - echo "demarrage de Sonar"
+      - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
+      
+      - echo "Recuperation des metadonnees de l application (version et nom du package)"
+      - PACKAGE_VERSION=$(grep -m 1 '<version>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
+      - APPLICATION_NAME=$(grep -m 1 '<artifactId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
+      
+      - echo "Recuperation de la precedente image de l application (base initiale) des maintenant pour gagner du temps dans la phase post-build. En arriere plan afin de paralleliser cette action et le demarrage de Sonar"
+      - $(aws ecr get-login --no-include-email --region $AWS_REGION)
+      - echo "Si l'image cache n'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee"
+      - chmod +x build-docker.sh
+      - ./build-docker.sh $IMAGE_REPO_NAME $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID
+ 
+  build:
+    commands:
+      - echo Build started on `date`
+#      - export MAVEN_OPTS="-Dmaven.repo.local=/opt/sonar/sonarqube-7.3/cache" # Trop lent avec EFS : a ne pas utiliser
+      - echo "Compilation du code source ..."
+      - mvn -T 1C -Dmaven.test.skip=true clean package
+      - echo "Demarrage des tests unitaires ..."
+      - mvn -T 1C test
+      - echo "Demarrage des tests OWASP ..."
+      - mvn dependency-check:check
+      - echo "Attente du demarrage de Sonar ..."
+      - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
+      - echo "Demarrage des tests Sonar ..."
+      - mvn sonar:sonar #-Duser.home=/opt/sonar/sonarqube-7.3/cache/
+      - cp target/$APPLICATION_NAME-$PACKAGE_VERSION.jar .
+      
+  post_build:
+    commands:
+      - echo Post-Build started on `date`
+      - echo "Verification de la presence de l'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)"
+      - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done'
+      - echo "Modification du dockerfile pour y indiquer l'image de base a utiliser pour le build afin de beneficier des layer mis en cache localement"
+      - sed -i.bak "s/BASIS_IMAGE/$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com\/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION/g" dockerfile
+      - echo "Build de l'image Docker de l'application a partir de l'image de base pour accelerer le processus - Les 3/4 des donnees sont deja en cache"
+      - docker build --cache-from $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$DOCKER_CACHE_IMAGE_VERSION --build-arg PACKAGE_VERSION=$PACKAGE_VERSION --build-arg APPLICATION_NAME=$APPLICATION_NAME -t $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION .
+      - echo "Tag de cette nouvelle version en 'latest'. C'est elle qui sera utilisee en cache pour le future de la future release de l'application"
+      - docker tag $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+      - echo "Pushing the Docker image..."
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION
+      - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
+      - echo "Writing image definitions file... (utilise uniquement pour le deploiement dans FarGate".
+      - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION > imagedefinitions.json
+      
+      
+cache:
+  paths:
+    - '/root/.m2/**/*'
+    
+artifacts:
+    files: imagedefinitions.json
