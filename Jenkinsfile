@@ -11,7 +11,7 @@ pipeline {
 		package_version = readMavenPom().getVersion()
 		applicationName = readMavenPom().getArtifactId()
 		groupID = readMavenPom().getGroupId()
-		dockerRegistry = '${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com'
+		dockerRegistry = "${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com"
 		
 		//kubernetesNode = 'rancher.maddoudou.click'
 		//deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
@@ -60,6 +60,8 @@ pipeline {
             steps {
                 echo 'Check Code Quality ...'
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
+				echo 'Purge des precedents rapports generes ...'
+				sh 'rm petClinicResult_*'
 				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
 				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework.samples:spring-petclinic&pageSize=9\" > petClinicResult_$(date +\"%Y%m%d%I%M%S\").json'
             }
