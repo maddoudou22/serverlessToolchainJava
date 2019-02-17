@@ -5,8 +5,8 @@ pipeline {
 		package_version = readMavenPom().getVersion()
 		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
 		DOCKER_CACHE_IMAGE_VERSION = "latest"
-		dockerRepo = "repo-jenkinsci"
-		applicationName = 'repo-jenkinsci' // Same as artifactId in pom.xml
+		dockerRepo = "serverlesstoolchainjava"
+		applicationName = 'serverlesstoolchainjava' // Same as artifactId in pom.xml
 		AWS_REGION = "eu-west-1"
 		AWS_ACCOUNT_ID = "962109799108"
 		kubernetesNode = 'rancher.maddoudou.click'
@@ -56,6 +56,8 @@ pipeline {
             steps {
                 echo 'Check Code Quality ...'
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
+				echo 'Recuperation du resultat des tests via l'API de Sonar :
+				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework.samples:spring-petclinic&pageSize=9\" > petClinicResult_$(date +\"%Y%m%d%I%M%S\").json'
             }
         }
 /*		
