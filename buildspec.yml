@@ -72,12 +72,12 @@ phases:
       - CODE_COVERAGE=$(jq ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i "0,/{/ s/{/{depedencyCheckFile:dependency-check-report-$TIMESTAMP.html,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+      - sed -i "0,/{/ s/{/{\"depedencyCheckFile\":\"dependency-check-report-$TIMESTAMP.html\",/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i '0,/depedencyCheckFile/ s/depedencyCheckFile/\"depedencyCheckFile\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i '0,/dependency-check-report-$TIMESTAMP.html/ s/dependency-check-report-$TIMESTAMP.html/\"dependency-check-report-$TIMESTAMP.html\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i '0,/depedencyCheckFile/ s/depedencyCheckFile/\"depedencyCheckFile\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i '0,/dependency-check-report-$TIMESTAMP.html/ s/dependency-check-report-$TIMESTAMP.html/\"dependency-check-report-$TIMESTAMP.html\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       
       - echo "Export des fichiers dans le bucket S3 ..."
       - aws s3 cp ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json $S3_TESTRESULTS_LOCATION
