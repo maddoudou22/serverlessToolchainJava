@@ -53,11 +53,11 @@ phases:
       
       - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
+      - echo "Verification que SOnar a bien compile les tests ..."
+#      - timeout 60 sh -c 'until ps aux | grep [o]rg.sonar.ce.app.CeServer; do sleep 1; done'
 #      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
       - curl "http://127.0.0.1:9000/api/projects/index"
-      - sleep 120
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
-      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=o:s&pageSize=9"
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=org.springframework:serverlesstoolchainjava&metricKeys=ncloc,line_coverage,new_line_coverage"
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
