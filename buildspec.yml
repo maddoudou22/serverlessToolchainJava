@@ -7,8 +7,8 @@ phases:
       
       - echo "Recuperation de packages necessaires au build ..."
 # Tenter de se passer de jq ...
-      - apt-get update
-      - apt-get -y install jq
+#      - apt-get update
+#      - apt-get -y install jq
       
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
@@ -61,20 +61,21 @@ phases:
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > ${APPLICATION_NAME}-TestCoverage.json
       
 # La commande requiere le package jq : apt-get install jq
+      - wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
+      - chmod +x jq-linux64
+      - ./jq-linux64 --version
+      
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\" | sed -e 's/\"//g')
       - mv ${APPLICATION_NAME}-TestsResult-temp.json ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i "0,/{/ s/{/{timestamp:${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"timestamp\":${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - LINES_OF_CODE=$(jq ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
+      
+#      - LINES_OF_CODE=$(jq ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
+      - LINES_OF_CODE=$(./jq-linux64 ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - sed -i "0,/{/ s/{/{\"ncloc\":$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - CODE_COVERAGE=$(jq ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
+#      - CODE_COVERAGE=$(jq ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
+      - CODE_COVERAGE=$(./jq-linux64 ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - sed -i "0,/{/ s/{/{\"coverage\":$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"depedencyCheckFile\":\"dependency-check-report-$TIMESTAMP.html\",/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
 
