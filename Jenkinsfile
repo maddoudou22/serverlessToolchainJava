@@ -27,9 +27,11 @@ pipeline {
 			sh 'cp /tmp/${applicationName}_TestCoverage.json .'
 			//sh 'LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json)'
 			
-			sh 'set LINES_OF_CODE=machin'
-			sh 'echo $PATH >> outenv'
-			sh 'echo $LINES_OF_CODE >> outenv'
+			sh '''
+				export LINES_OF_CODE=machin
+				echo $PATH >> outenv
+				echo $LINES_OF_CODE >> outenv
+			'''
 			
 			sh 'sed -i.bak "0,/{/ s/{/{\"coucou:$LINES_OF_CODE\",/" ${applicationName}_TestCoverage.json'
                 echo 'Getting previous image ...'
