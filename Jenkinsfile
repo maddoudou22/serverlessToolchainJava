@@ -26,14 +26,17 @@ pipeline {
 			//sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
 			sh 'cp /tmp/${applicationName}_Test* .'
 			
-			
+			echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
 			sh '''
 				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
 				sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${applicationName}_TestsResults_20190217101725.json
 				sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${applicationName}_TestsResults_20190217101725.json
+				export CODE_COVERAGE=$(jq \".component.measures[1].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
+				sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_20190217101725.json
+				sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_20190217101725.json
 			'''
 			
-			sh ''
+			//sh ''
                 echo 'Getting previous image ...'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
