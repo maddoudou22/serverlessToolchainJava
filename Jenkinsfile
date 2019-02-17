@@ -7,6 +7,7 @@ pipeline {
 		AWS_ACCOUNT_ID = "962109799108"
 		AWS_REGION = "eu-west-1"
 		DOCKER_CACHE_IMAGE_VERSION = "latest"
+		S3_TESTRESULTS_LOCATION = "s3://serverlesstoolchainjava/tests-results/"
 
 		package_version = readMavenPom().getVersion()
 		applicationName = readMavenPom().getArtifactId()
@@ -21,21 +22,6 @@ pipeline {
     stages {
 	    stage('Prepa baking') {
             steps {
-			echo 'premier test'
-			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/serverlesstoolchainjava_Test*'
-			//sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
-			sh 'cp /tmp/${applicationName}_Test* .'
-			
-			echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
-			sh '''
-				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-				sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${applicationName}_TestsResults_20190217101725.json
-				sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${applicationName}_TestsResults_20190217101725.json
-				export CODE_COVERAGE=$(jq \".component.measures[1].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-				sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_20190217101725.json
-				sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_20190217101725.json
-			'''
-			
                 echo 'Getting previous image ...'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
@@ -75,16 +61,34 @@ pipeline {
             steps {
                 echo 'Check Code Quality ...'
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
-				echo 'Purge des precedents rapports generes ...'
+            }
+        }
+		stage('Publish test results to S3') {
+            steps {
+                echo 'Purge des precedents rapports generes ...'
 				sh 'rm -f ${applicationName}_TestsResults_*'
+				
 				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
 				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=9\" > ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json'
 				echo 'Recuperation du nombre de lignes de code et de la couverture des tests ...'
 				sh 'curl \"http://127.0.0.1:9000/api/measures/component?componentKey=$groupID:$applicationName&metricKeys=ncloc,line_coverage,new_line_coverage\" > ${applicationName}_TestCoverage.json'
+
 				echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
+				sh '''
+					export TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
+					sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
+					sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					export CODE_COVERAGE=$(jq \".component.measures[1].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
+					sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+				'''
 				
-            }
-        }
+				echo 'Export des fichiers dans les bucket S3 ...'
+				sh 'aws s3 cp ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json ${S3_TESTRESULTS_LOCATION}
+		}
 /*		
         stage('Contract testing') {
             steps {
