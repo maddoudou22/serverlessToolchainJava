@@ -2,27 +2,26 @@ pipeline {
     agent any
 	
 	environment {
-		package_version = readMavenPom().getVersion()
-		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
+	
 		DOCKER_CACHE_IMAGE_VERSION = "latest"
 		dockerRepo = "serverlesstoolchainjava"
-		//applicationName = 'serverlesstoolchainjava' // Same as artifactId in pom.xml
-		applicationName = readMavenPom().getArtifactId()
-		groupID = readMavenPom().getGroupId()
 		AWS_REGION = "eu-west-1"
 		AWS_ACCOUNT_ID = "962109799108"
-		kubernetesNode = 'rancher.maddoudou.click'
-		deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
-		deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instance
+		
+		package_version = readMavenPom().getVersion()
+		applicationName = readMavenPom().getArtifactId()
+		groupID = readMavenPom().getGroupId()
+		dockerRegistry = "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+		
+		//kubernetesNode = 'rancher.maddoudou.click'
+		//deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
+		//deploymentConfigurationPathKubernetes = "/home/ubuntu/k8s-deployments" // Location of the K8s deployment configuration on the K8s instance
     }
 	
     stages {
 	    stage('Prepa baking') {
             steps {
                 echo 'Getting previous image ...'
-				sh 'echo package_version : ${package_version} > echofile'
-				sh 'echo applicationName : ${applicationName} >> echofile'
-				sh 'echo groupID : ${groupID} >> echofile'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
 				sh './build-docker.sh $dockerRepo $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID'
