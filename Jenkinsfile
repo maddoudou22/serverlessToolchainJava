@@ -22,8 +22,12 @@ pipeline {
 	    stage('Prepa baking') {
             steps {
 			echo 'premier test'
+			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/serverlesstoolchainjava_TestCoverage.*'
+			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
 			sh 'cp /tmp/${applicationName}_TestCoverage.json .'
-			sh 'LINES_OF_CODE=$(jq \'.component.measures[0].value\' ${applicationName}_TestCoverage.json)'
+			sh 'LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json)'
+			sh 'echo $PATH >> outenv
+			sh 'echo $LINES_OF_CODE >> outenv
 			sh 'sed -i.bak "0,/{/ s/{/{\"coucou:$LINES_OF_CODE\",/" ${applicationName}_TestCoverage.json'
                 echo 'Getting previous image ...'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
