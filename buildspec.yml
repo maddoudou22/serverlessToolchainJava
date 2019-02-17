@@ -38,7 +38,7 @@ phases:
       - echo "Compilation du code source ..."
       - mvn -T 1C -Dmaven.test.skip=true clean package
       - echo "Demarrage des tests unitaires ..."
-      - mvn -T 1C test
+#      - mvn -T 1C test
       - echo "Demarrage des tests OWASP ..."
       - mvn dependency-check:check
       - echo "Attente du demarrage de Sonar ..."
@@ -51,25 +51,25 @@ phases:
     commands:
       - echo Post-Build started on `date`
       
-#      - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
-#      - echo "Recuperation du resultat des tests via l'API de Sonar ..."
-#      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
-#      - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
-#      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
+      - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
+      - echo "Recuperation du resultat des tests via l'API de Sonar ..."
+      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
+      - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
+      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
 # La commande resqiere le package jq : apt-get install jq
-#      - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
-#      - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
-#      - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - LINES_OF_CODE=$(jq \".component.measures[0].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
-#      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - CODE_COVERAGE=$(jq \".component.measures[1].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
-#      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
-#      - echo "Export des fichiers dans le bucket S3 ..."
-#      - aws s3 cp $APPLICATION_NAME_TestsResults_$TIMESTAMP.json $S3_TESTRESULTS_LOCATION
+      - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
+      - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
+      - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - LINES_OF_CODE=$(jq \".component.measures[0].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
+      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - CODE_COVERAGE=$(jq \".component.measures[1].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
+      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - echo "Export des fichiers dans le bucket S3 ..."
+      - aws s3 cp $APPLICATION_NAME_TestsResults_$TIMESTAMP.json $S3_TESTRESULTS_LOCATION
       
       - echo "PHASE DE BUILD DE L'IMAGE DOCKER"
       - echo "Verification de la presence de l'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)"
