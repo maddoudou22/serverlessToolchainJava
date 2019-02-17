@@ -76,18 +76,17 @@ pipeline {
 				echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
 				sh '''
 					export TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
-					sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
-					sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
+					sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
 					export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-					sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
-					sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
+					sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
 					export CODE_COVERAGE=$(jq \".component.measures[1].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-					sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
-					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
+					sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
+					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
+					echo 'Export des fichiers dans le bucket S3 ...'
+					aws s3 cp ${applicationName}_TestsResults_${TIMESTAMP}.json ${S3_TESTRESULTS_LOCATION}
 				'''
-				
-				echo 'Export des fichiers dans le bucket S3 ...'
-				sh 'aws s3 cp ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json ${S3_TESTRESULTS_LOCATION}'
 			}
 		}
 /*		
