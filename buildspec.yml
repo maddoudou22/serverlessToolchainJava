@@ -8,7 +8,6 @@ phases:
       - echo "Configuration du fuseau horaire ..."
       - ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
       - dpkg-reconfigure --frontend noninteractive tzdata
-      - tzselect
       
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
