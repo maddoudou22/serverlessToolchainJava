@@ -61,7 +61,7 @@ pipeline {
                 echo 'Check Code Quality ...'
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
 				echo 'Purge des precedents rapports generes ...'
-				sh 'rm ${applicationName}_TestsResults_*'
+				sh 'rm -f ${applicationName}_TestsResults_*'
 				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
 				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=9\" > $applicationName_TestsResults_$(date +\"%Y%m%d%I%M%S\").json'
             }
