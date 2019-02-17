@@ -56,23 +56,17 @@ phases:
       - echo "Verification que SOnar a bien compile les tests ..."
       - timeout 30 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > ${APPLICATION_NAME}-TestsResult-temp.json
-      - cat $APPLICATION_NAME_TestsResults_temp.json
-#      - curl "http://127.0.0.1:9000/api/projects/index"
-
-
-#      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
-#      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9"
 
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > ${APPLICATION_NAME}-TestCoverage.json
-      - cat $APPLICATION_NAME_TestCoverage.json
-      - touch NEWFILE-${APPLICATION_NAME}-MILIEU
-      - touch ${APPLICATION_NAME}-DEBUT-NEWFILE
-      - touch NEWFILE_${APPLICATION_NAME}_MILIEU
-      - touch ${APPLICATION_NAME}_DEBUT_NEWFILE
-      - touch NEWFILE-$APPLICATION_NAME-MILIEU-SANS
-      - touch $APPLICATION_NAME-DEBUT-NEWFILE-SANS
-      - touch NEWFILE_$APPLICATION_NAME_MILIEU-SANS
+
+#      - touch NEWFILE-${APPLICATION_NAME}-MILIEU
+#      - touch ${APPLICATION_NAME}-DEBUT-NEWFILE
+#      - touch NEWFILE_${APPLICATION_NAME}_MILIEU
+#      - touch ${APPLICATION_NAME}_DEBUT_NEWFILE
+#      - touch NEWFILE-$APPLICATION_NAME-MILIEU-SANS
+#      - touch $APPLICATION_NAME-DEBUT-NEWFILE-SANS
+#      - touch NEWFILE_$APPLICATION_NAME_MILIEU-SANS
 #      - touch $APPLICATION_NAME_DEBUT_NEWFILE-SANS
       - ls
       - ls target/
