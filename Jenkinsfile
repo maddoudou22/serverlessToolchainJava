@@ -36,7 +36,6 @@ pipeline {
 				sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_20190217101725.json
 			'''
 			
-			//sh ''
                 echo 'Getting previous image ...'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
@@ -68,7 +67,7 @@ pipeline {
 		stage('OWASP - Dependencies check') {
             steps {
                 echo 'Check OWASP dependencies ...'
-				sh 'mvn dependency-check:check'
+				//sh 'mvn dependency-check:check'
             }
         }
 		
