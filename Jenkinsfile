@@ -20,9 +20,9 @@ pipeline {
 	    stage('Prepa baking') {
             steps {
                 echo 'Getting previous image ...'
-				echo " package_version : ${package_version}"
-				echo " applicationName : ${applicationName}"
-				echo " groupID : ${groupID}"
+				sh 'echo package_version : $package_version'
+				sh 'echo applicationName : $applicationName'
+				sh 'echo groupID : $groupID'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
 				sh './build-docker.sh $dockerRepo $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID'
