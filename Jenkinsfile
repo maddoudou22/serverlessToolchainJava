@@ -76,7 +76,7 @@ pipeline {
 				echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
 				sh '''
 					export TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
-					mv ${applicationName}_TestsResults_temp ${applicationName}_TestsResults_${TIMESTAMP}.json
+					mv ${applicationName}_TestsResults_temp.json ${applicationName}_TestsResults_${TIMESTAMP}.json
 					sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
 					sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
 					export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
