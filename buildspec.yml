@@ -55,6 +55,7 @@ phases:
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
 #      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
       - curl "http://127.0.0.1:9000/api/projects/index"
+      - sleep 120
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=o:s&pageSize=9"
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=org.springframework:serverlesstoolchainjava&metricKeys=ncloc,line_coverage,new_line_coverage"
@@ -92,6 +93,7 @@ phases:
       - echo "Writing image definitions file... (utilise uniquement pour le deploiement dans FarGate".
       - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION > imagedefinitions.json
       
+      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
       
 cache:
   paths:
