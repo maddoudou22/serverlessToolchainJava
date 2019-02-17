@@ -29,7 +29,7 @@ pipeline {
 			
 			sh '''
 				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-				sed -i '0,/{/ s/{/{"ncloc":${LINES_OF_CODE},/' ${applicationName}_TestsResults_20190217101725.json
+				sed -i "0,/{/ s/{/{\"ncloc\":$LINES_OF_CODE,/" ${applicationName}_TestsResults_20190217101725.json
 			'''
 			
 			sh ''
