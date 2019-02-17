@@ -63,7 +63,9 @@ pipeline {
 				echo 'Purge des precedents rapports generes ...'
 				sh 'rm -f ${applicationName}_TestsResults_*'
 				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
-				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=9\" > $applicationName_TestsResults_$(date +\"%Y%m%d%I%M%S\").json'
+				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=9\" > ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json'
+				echo 'Recuperation du nombre de lignes de code et de la couverture des tests ...'
+				sh 'curl \"http://127.0.0.1:9000/api/measures/component?componentKey=$groupID:$applicationName&metricKeys=ncloc,line_coverage,new_line_coverage\" > ${applicationName}_TestCoverage.json'
             }
         }
 /*		
