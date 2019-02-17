@@ -22,18 +22,17 @@ pipeline {
 	    stage('Prepa baking') {
             steps {
 			echo 'premier test'
-			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/serverlesstoolchainjava_TestCoverage.*'
-			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
-			sh 'cp /tmp/${applicationName}_TestCoverage.json .'
+			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/serverlesstoolchainjava_Test*'
+			//sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
+			sh 'cp /tmp/${applicationName}_Test* .'
 			
 			
 			sh '''
 				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
-				echo $PATH >> outenv
-				echo $LINES_OF_CODE >> outenv
+				sed -i "0,/{/ s/{/{\"ncloc\":$LINES_OF_CODE,/" ${applicationName}_TestsResults_20190217101725.json
 			'''
 			
-			sh 'sed -i.bak "0,/{/ s/{/{\"coucou:$LINES_OF_CODE\",/" ${applicationName}_TestCoverage.json'
+			sh ''
                 echo 'Getting previous image ...'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
