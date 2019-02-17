@@ -53,7 +53,7 @@ phases:
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
-      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json'
+      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..." // Cette commande resuière le package jq : apt-get install jq
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
       - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
