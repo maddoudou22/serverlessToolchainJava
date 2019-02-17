@@ -56,7 +56,7 @@ pipeline {
             steps {
                 echo 'Check Code Quality ...'
 				sh 'mvn sonar:sonar' // -Dsonar.dependencyCheck.reportPath=target/dependency-check-report.xml'
-				echo 'Recuperation du resultat des tests via l'API de Sonar :
+				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
 				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework.samples:spring-petclinic&pageSize=9\" > petClinicResult_$(date +\"%Y%m%d%I%M%S\").json'
             }
         }
