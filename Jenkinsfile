@@ -87,6 +87,7 @@ pipeline {
 					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
 					echo 'Export des fichiers dans le bucket S3 ...'
 					aws s3 cp ${applicationName}_TestsResults_${TIMESTAMP}.json ${S3_TESTRESULTS_LOCATION}
+					aws s3 cp target/dependency-check-report.html ${S3_TESTRESULTS_LOCATION}
 				'''
 			}
 		}
