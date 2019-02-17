@@ -64,21 +64,20 @@ phases:
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\" | sed -e 's/\"//g')
       - mv ${APPLICATION_NAME}-TestsResult-temp.json ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i "0,/{/ s/{/{timestamp:${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i "0,/{/ s/{/{timestamp:${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+      - sed -i "0,/{/ s/{/{\"timestamp\":${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - LINES_OF_CODE=$(jq ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
-      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+      - sed -i "0,/{/ s/{/{\"ncloc\":$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - CODE_COVERAGE=$(jq ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
-      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+      - sed -i "0,/{/ s/{/{\"coverage\":$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
+#      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"depedencyCheckFile\":\"dependency-check-report-$TIMESTAMP.html\",/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i '0,/depedencyCheckFile/ s/depedencyCheckFile/\"depedencyCheckFile\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - sed -i '0,/dependency-check-report-$TIMESTAMP.html/ s/dependency-check-report-$TIMESTAMP.html/\"dependency-check-report-$TIMESTAMP.html\"/' ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      
+
       - echo "Export des fichiers dans le bucket S3 ..."
       - aws s3 cp ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json $S3_TESTRESULTS_LOCATION
       - mv target/dependency-check-report.html target/dependency-check-report-${TIMESTAMP}.html
