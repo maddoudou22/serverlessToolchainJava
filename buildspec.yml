@@ -5,6 +5,11 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       
+      - echo "Configuration du fuseau horaire ..."
+      - ln -fs /usr/share/zoneinfo/Europe/Paris /etc/localtime
+      - dpkg-reconfigure --frontend noninteractive tzdata
+      - tzselect
+      
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
       - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
@@ -89,8 +94,6 @@ phases:
       - docker push $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:latest
       - echo "Writing image definitions file... (utilise uniquement pour le deploiement dans FarGate".
       - printf '[{"name":"%s","imageUri":"%s"}]' $IMAGE_REPO_NAME $AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com/$IMAGE_REPO_NAME:$PACKAGE_VERSION > imagedefinitions.json
-      
-      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
       
 cache:
   paths:
