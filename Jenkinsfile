@@ -3,15 +3,15 @@ pipeline {
 	
 	environment {
 	
-		DOCKER_CACHE_IMAGE_VERSION = "latest"
 		dockerRepo = "serverlesstoolchainjava"
-		AWS_REGION = "eu-west-1"
 		AWS_ACCOUNT_ID = "962109799108"
+		AWS_REGION = "eu-west-1"
+		DOCKER_CACHE_IMAGE_VERSION = "latest"
 		
 		package_version = readMavenPom().getVersion()
 		applicationName = readMavenPom().getArtifactId()
 		groupID = readMavenPom().getGroupId()
-		dockerRegistry = "$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com"
+		dockerRegistry = '$AWS_ACCOUNT_ID.dkr.ecr.$AWS_REGION.amazonaws.com'
 		
 		//kubernetesNode = 'rancher.maddoudou.click'
 		//deploymentConfigurationPathSource = "deploy-k8s" // Location of the K8s deployment configuration on the pipeline instance
