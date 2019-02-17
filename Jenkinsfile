@@ -72,7 +72,7 @@ pipeline {
 					export TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
 					
 					echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
-					curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=${groupID}:${applicationName}&pageSize=9" > ${applicationName}_TestsResults_${TIMESTAMP}.json
+					curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=500" > $applicationName_TestsResults_${TIMESTAMP}.json
 					echo 'Recuperation du nombre de lignes de code et de la couverture des tests ...'
 					curl \"http://127.0.0.1:9000/api/measures/component?componentKey=${groupID}:${applicationName}&metricKeys=ncloc,line_coverage,new_line_coverage\" > ${applicationName}_TestCoverage.json
 					
