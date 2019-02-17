@@ -12,13 +12,13 @@ phases:
       
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
-      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
-      - unzip sonarqube-7.3.zip -d /opt/sonar/
+      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.1.zip
+      - unzip sonarqube-7.1.zip -d /opt/sonar/
       - adduser --disabled-password --gecos "" sonar 
-      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=sonar/g' /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh
+      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=sonar/g' /opt/sonar/sonarqube-7.1/bin/linux-x86-64/sonar.sh
       - chown -R sonar:sonar /opt/sonar
       - echo "demarrage de Sonar"
-      - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
+      - /opt/sonar/sonarqube-7.1/bin/linux-x86-64/sonar.sh start
       
       - echo "Recuperation des metadonnees de l application (version et nom du package)"
       - APPLICATION_GROUPID=$(grep -m 1 '<groupId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
