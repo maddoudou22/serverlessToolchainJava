@@ -12,10 +12,10 @@ phases:
       
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
-      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.1.zip
-      - unzip sonarqube-7.1.zip -d /opt/sonar/
+      - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
+      - unzip sonarqube-7.3.zip -d /opt/sonar/
       - adduser --disabled-password --gecos "" sonar 
-      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=sonar/g' /opt/sonar/sonarqube-7.1/bin/linux-x86-64/sonar.sh
+      - sed -i 's/#RUN_AS_USER=/RUN_AS_USER=sonar/g' /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh
       - chown -R sonar:sonar /opt/sonar
       - echo "demarrage de Sonar"
       - /opt/sonar/sonarqube-7.1/bin/linux-x86-64/sonar.sh start
@@ -54,13 +54,22 @@ phases:
       - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
       - echo "Verification que SOnar a bien compile les tests ..."
+      - echo $APPLICATION_NAME
+      - echo $APPLICATION_GROUPID
+      - echo ${APPLICATION_NAME}
+      - echo ${APPLICATION_GROUPID}
+      
       - timeout 60 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
 #      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
 #      - curl "http://127.0.0.1:9000/api/projects/index"
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
-# La commande resqiere le package jq : apt-get install jq
+      - echo "AVEC ..."
+      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=${APPLICATION_GROUPID}:${APPLICATION_NAME}&metricKeys=ncloc,line_coverage,new_line_coverage"
+      - echo "SANS ..."
+      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage"
+# La commande requiere le package jq : apt-get install jq
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\" | sed -e 's/\"//g')
       - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
