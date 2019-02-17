@@ -71,11 +71,13 @@ phases:
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json
       - cat $APPLICATION_NAME_TestCoverage.json
+      - ls
       
 # La commande requiere le package jq : apt-get install jq
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\" | sed -e 's/\"//g')
       - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - ls
       - aws s3 cp $APPLICATION_NAME_TestsResults_$TIMESTAMP.json $S3_TESTRESULTS_LOCATION
       
       - sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
