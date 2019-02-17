@@ -59,7 +59,7 @@ phases:
       - echo ${APPLICATION_NAME}
       - echo ${APPLICATION_GROUPID}
       
-      - timeout 60 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
+      - timeout 90 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
 #      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
 #      - curl "http://127.0.0.1:9000/api/projects/index"
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9"
