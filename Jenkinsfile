@@ -88,6 +88,7 @@ pipeline {
 				
 				echo 'Export des fichiers dans le bucket S3 ...'
 				sh 'aws s3 cp ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json ${S3_TESTRESULTS_LOCATION}'
+			}
 		}
 /*		
         stage('Contract testing') {
