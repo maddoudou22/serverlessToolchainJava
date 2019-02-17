@@ -54,11 +54,6 @@ phases:
       - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
       - echo "Verification que SOnar a bien compile les tests ..."
-      - echo $APPLICATION_NAME
-      - echo $APPLICATION_GROUPID
-      - echo ${APPLICATION_NAME}
-      - echo ${APPLICATION_GROUPID}
-      
       - timeout 30 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
       - cat $APPLICATION_NAME_TestsResults_temp.json
@@ -78,7 +73,7 @@ phases:
       - touch NEWFILE-$APPLICATION_NAME-MILIEU-SANS
       - touch $APPLICATION_NAME-DEBUT-NEWFILE-SANS
       - touch NEWFILE_$APPLICATION_NAME_MILIEU-SANS
-      - touch $APPLICATION_NAME_DEBUT_NEWFILE-SANS
+#      - touch $APPLICATION_NAME_DEBUT_NEWFILE-SANS
       - ls
       - ls target/
       
