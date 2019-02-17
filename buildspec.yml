@@ -60,6 +60,8 @@ phases:
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
       - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - cat $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      
       - sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
       - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
       - LINES_OF_CODE=$(jq \".component.measures[0].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
