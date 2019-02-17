@@ -4,6 +4,10 @@ phases:
   pre_build:
     commands:
       - echo Pre-Build started on `date`
+      
+      - echo "Recuperation de packages necessaires au build ..."
+      - apt-get -y install jq
+      
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
       - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
@@ -15,8 +19,9 @@ phases:
       - /opt/sonar/sonarqube-7.3/bin/linux-x86-64/sonar.sh start
       
       - echo "Recuperation des metadonnees de l application (version et nom du package)"
-      - PACKAGE_VERSION=$(grep -m 1 '<version>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
+      - APPLICATION_GROUPID=$(grep -m 1 '<groupId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
       - APPLICATION_NAME=$(grep -m 1 '<artifactId>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
+      - PACKAGE_VERSION=$(grep -m 1 '<version>' pom.xml | awk -F">" '{print $2}' | awk -F"<" '{print $1}')
       
       - echo "Recuperation de la precedente image de l application (base initiale) des maintenant pour gagner du temps dans la phase post-build. En arriere plan afin de paralleliser cette action et le demarrage de Sonar"
       - $(aws ecr get-login --no-include-email --region $AWS_REGION)
@@ -43,6 +48,27 @@ phases:
   post_build:
     commands:
       - echo Post-Build started on `date`
+      
+      - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
+      - echo "Recuperation du resultat des tests via l'API de Sonar ..."
+      - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > $APPLICATION_NAME_TestsResults_temp.json
+      - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
+      - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > $APPLICATION_NAME_TestCoverage.json'
+      - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..." // Cette commande resuière le package jq : apt-get install jq
+      - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
+      - mv $APPLICATION_NAME_TestsResults_temp.json $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - LINES_OF_CODE=$(jq \".component.measures[0].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
+      - sed -i "0,/{/ s/{/{ncloc:$LINES_OF_CODE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/ncloc/ s/ncloc/\"ncloc\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - CODE_COVERAGE=$(jq \".component.measures[1].value\" $APPLICATION_NAME_TestCoverage.json | sed -e \'s/\"//g\')
+      - sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - sed -i '0,/coverage/ s/coverage/\"coverage\"/' $APPLICATION_NAME_TestsResults_$TIMESTAMP.json
+      - echo "Export des fichiers dans le bucket S3 ..."
+      - aws s3 cp $APPLICATION_NAME_TestsResults_$TIMESTAMP.json $S3_TESTRESULTS_LOCATION
+      
+      - echo "PHASE DE BUILD DE L'IMAGE DOCKER"
       - echo "Verification de la presence de l'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)"
       - timeout 60 sh -c 'until docker images | grep $IMAGE_REPO_NAME | grep $DOCKER_CACHE_IMAGE_VERSION; do sleep 1; done'
       - echo "Modification du dockerfile pour y indiquer l'image de base a utiliser pour le build afin de beneficier des layer mis en cache localement"
