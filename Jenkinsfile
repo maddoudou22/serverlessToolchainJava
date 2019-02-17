@@ -28,7 +28,7 @@ pipeline {
 			
 			
 			sh '''
-				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json)
+				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \"s/\"//g\")
 				echo $PATH >> outenv
 				echo $LINES_OF_CODE >> outenv
 			'''
