@@ -25,10 +25,10 @@ pipeline {
 			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/serverlesstoolchainjava_TestCoverage.*'
 			sh 'rm -f /var/lib/jenkins/workspace/API-javaSpringboot_pipeline/outenv'
 			sh 'cp /tmp/${applicationName}_TestCoverage.json .'
-			//sh 'LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json)'
+			
 			
 			sh '''
-				export LINES_OF_CODE=machin
+				export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json)
 				echo $PATH >> outenv
 				echo $LINES_OF_CODE >> outenv
 			'''
