@@ -5,11 +5,6 @@ phases:
     commands:
       - echo Pre-Build started on `date`
       
-      - echo "Recuperation de packages necessaires au build ..."
-# Tenter de se passer de jq ...
-#      - apt-get update
-#      - apt-get -y install jq
-      
       - echo "Installation de Sonar"
       - mkdir /opt/sonar
       - wget https://binaries.sonarsource.com/Distribution/sonarqube/sonarqube-7.3.zip
@@ -60,27 +55,23 @@ phases:
       - echo "Recuperation du nombre de lignes de code et de la couverture des tests ..."
       - curl "http://127.0.0.1:9000/api/measures/component?componentKey=$APPLICATION_GROUPID:$APPLICATION_NAME&metricKeys=ncloc,line_coverage,new_line_coverage" > ${APPLICATION_NAME}-TestCoverage.json
       
-# La commande requiere le package jq : apt-get install jq
+      - echo "Recuperation de la commande JQ pour le parsing de fichier JSON ..."
       - wget https://github.com/stedolan/jq/releases/download/jq-1.5/jq-linux64
       - chmod +x jq-linux64
-      - ./jq-linux64 --version
       
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
       - TIMESTAMP=$(date +\"%Y%m%d%I%M%S\" | sed -e 's/\"//g')
       - mv ${APPLICATION_NAME}-TestsResult-temp.json ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"timestamp\":${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      
-#      - LINES_OF_CODE=$(jq ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - LINES_OF_CODE=$(./jq-linux64 ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - sed -i "0,/{/ s/{/{\"ncloc\":$LINES_OF_CODE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-#      - CODE_COVERAGE=$(jq ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - CODE_COVERAGE=$(./jq-linux64 ".component.measures[1].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
       - sed -i "0,/{/ s/{/{\"coverage\":$CODE_COVERAGE,/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"depedencyCheckFile\":\"dependency-check-report-$TIMESTAMP.html\",/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
-      - cat ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
 
-      - echo "Export des fichiers dans le bucket S3 ..."
+      - echo "Export du JSON de resultats Sonar et Unit Tests dans le bucket S3 ..."
       - aws s3 cp ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json $S3_TESTRESULTS_LOCATION
+      - echo "Export des tests de dépendance dans le bucket S3 ..."
       - mv target/dependency-check-report.html target/dependency-check-report-${TIMESTAMP}.html
       - aws s3 cp target/dependency-check-report-${TIMESTAMP}.html $S3_TESTRESULTS_LOCATION
       
