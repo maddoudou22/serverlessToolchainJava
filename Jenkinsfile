@@ -86,8 +86,8 @@ pipeline {
 					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json
 				'''
 				
-				echo 'Export des fichiers dans les bucket S3 ...'
-				sh 'aws s3 cp ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json ${S3_TESTRESULTS_LOCATION}
+				echo 'Export des fichiers dans le bucket S3 ...'
+				sh 'aws s3 cp ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json ${S3_TESTRESULTS_LOCATION}'
 		}
 /*		
         stage('Contract testing') {
