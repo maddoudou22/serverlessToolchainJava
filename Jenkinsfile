@@ -6,7 +6,9 @@ pipeline {
 		dockerRegistry = "962109799108.dkr.ecr.eu-west-1.amazonaws.com"
 		DOCKER_CACHE_IMAGE_VERSION = "latest"
 		dockerRepo = "serverlesstoolchainjava"
-		applicationName = 'serverlesstoolchainjava' // Same as artifactId in pom.xml
+		//applicationName = 'serverlesstoolchainjava' // Same as artifactId in pom.xml
+		applicationName = readMavenPom().getArtifactId()
+		groupID = readMavenPom().getGroupId()
 		AWS_REGION = "eu-west-1"
 		AWS_ACCOUNT_ID = "962109799108"
 		kubernetesNode = 'rancher.maddoudou.click'
@@ -18,6 +20,9 @@ pipeline {
 	    stage('Prepa baking') {
             steps {
                 echo 'Getting previous image ...'
+				echo ' package_version : $package_version'
+				echo ' applicationName : $applicationName'
+				echo ' groupID : $groupID'
 				sh 'echo \"Si l\'image cache n\'existe pas dans le repo ECR elle est reconstruire, sinon elle est telechargee\"'
 				sh 'chmod +x build-docker.sh'
 				sh './build-docker.sh $dockerRepo $DOCKER_CACHE_IMAGE_VERSION dockerfile_basis $AWS_REGION $AWS_ACCOUNT_ID'
