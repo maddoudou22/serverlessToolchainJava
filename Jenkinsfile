@@ -68,14 +68,15 @@ pipeline {
                 echo 'Purge des precedents rapports generes ...'
 				sh 'rm -f ${applicationName}_TestsResults_*'
 				
-				echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
-				sh 'curl \"http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$groupID:$applicationName&pageSize=9\" > ${applicationName}_TestsResults_$(date +\"%Y%m%d%I%M%S\").json'
-				echo 'Recuperation du nombre de lignes de code et de la couverture des tests ...'
-				sh 'curl \"http://127.0.0.1:9000/api/measures/component?componentKey=$groupID:$applicationName&metricKeys=ncloc,line_coverage,new_line_coverage\" > ${applicationName}_TestCoverage.json'
-
-				echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
 				sh '''
 					export TIMESTAMP=$(date +\"%Y%m%d%I%M%S\")
+					
+					echo 'Recuperation du resultat des tests via l\'API de Sonar ...'
+					curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=${groupID}:${applicationName}&pageSize=9" > ${applicationName}_TestsResults_${TIMESTAMP}.json
+					echo 'Recuperation du nombre de lignes de code et de la couverture des tests ...'
+					curl \"http://127.0.0.1:9000/api/measures/component?componentKey=${groupID}:${applicationName}&metricKeys=ncloc,line_coverage,new_line_coverage\" > ${applicationName}_TestCoverage.json
+					
+					echo 'Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ...' // Cette commande resuière le package jq : apt-get install jq
 					sed -i "0,/{/ s/{/{timestamp:$TIMESTAMP,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
 					sed -i '0,/timestamp/ s/timestamp/\"timestamp\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
 					export LINES_OF_CODE=$(jq \".component.measures[0].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
@@ -84,6 +85,7 @@ pipeline {
 					export CODE_COVERAGE=$(jq \".component.measures[1].value\" ${applicationName}_TestCoverage.json | sed -e \'s/\"//g\')
 					sed -i "0,/{/ s/{/{coverage:$CODE_COVERAGE,/" ${applicationName}_TestsResults_${TIMESTAMP}.json
 					sed -i '0,/coverage/ s/coverage/\"coverage\"/' ${applicationName}_TestsResults_${TIMESTAMP}.json
+					
 					echo 'Export des fichiers dans le bucket S3 ...'
 					aws s3 cp ${applicationName}_TestsResults_${TIMESTAMP}.json ${S3_TESTRESULTS_LOCATION}
 				'''
