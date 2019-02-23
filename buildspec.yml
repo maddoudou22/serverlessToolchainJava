@@ -51,11 +51,10 @@ phases:
       - echo Post-Build started on `date`
       
       - echo "PHASE DE PUBLICATION DES TESTS DANS S3"
-      - echo "Verification que Sonar a bien compile les tests ..."
       
+      - echo "Verification que Sonar a bien compile les tests ..."
       # Installation neuve de Sonar, donc une seule task executee
       - timeout 30 sh -c 'until curl -u admin:admin http://localhost:9000/api/ce/activity | grep "SUCCESS"; do sleep 1; done'
-#      - timeout 30 sh -c 'until curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=org.springframework:serverlesstoolchainjava&pageSize=9" | grep "total\":1"; do sleep 1; done'
 
       - echo "Recuperation du resultat des tests via l'API de Sonar ..."
       - curl "http://127.0.0.1:9000/api/issues/search?facets=severities&componentKeys=$APPLICATION_GROUPID:$APPLICATION_NAME&pageSize=9" > ${APPLICATION_NAME}-TestsResult-temp.json
@@ -68,7 +67,7 @@ phases:
       - chmod +x jq-linux64
       
       - echo "Extraction du nombre de lignes de code et test de couverture en variables d\'environnement ..."
-      - TIMESTAMP=$(date +\"%Y-%m-%d-%H-%M-%S\" | sed -e 's/\"//g')
+      - TIMESTAMP=$(date +\"%Y%m%d%H%M%S\" | sed -e 's/\"//g')
       - mv ${APPLICATION_NAME}-TestsResult-temp.json ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - sed -i "0,/{/ s/{/{\"timestamp\":${TIMESTAMP},/" ${APPLICATION_NAME}-TestsResult-${TIMESTAMP}.json
       - LINES_OF_CODE=$(./jq-linux64 ".component.measures[0].value" ${APPLICATION_NAME}-TestCoverage.json | sed -e 's/\"//g')
