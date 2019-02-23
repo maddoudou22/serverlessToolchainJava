@@ -6,7 +6,7 @@ pipeline {
 		dockerRepo = "serverlesstoolchainjava"
 		AWS_ACCOUNT_ID = "962109799108"
 		AWS_REGION = "eu-west-1"
-		DOCKER_CACHE_IMAGE_VERSION = "latest"
+		DOCKER_CACHE_IMAGE_VERSION = "basis"
 		S3_TESTRESULTS_LOCATION = "s3://serverlesstoolchainjava/tests-results/"
 
 		package_version = readMavenPom().getVersion()
@@ -35,14 +35,14 @@ pipeline {
 				sh 'mvn -T 1C -Dmaven.test.skip=true clean package'
             }
         }
-		
+/*		
 		stage('Unit test') {
             steps {
                 echo 'Unit testing ...'
 				sh 'mvn -T 1C test'
             }
         }
-/*
+
 		stage('Publish snapshot') {
             steps {
                 echo 'Publising into the snapshot repo ...'
@@ -56,7 +56,7 @@ pipeline {
 				sh 'mvn dependency-check:check'
             }
         }
-		
+/*		
 		stage('Sonar - Code Quality') {
             steps {
                 echo 'Check Code Quality ...'
@@ -91,13 +91,13 @@ pipeline {
 				'''
 			}
 		}
-/*		
+		
         stage('Contract testing') {
             steps {
                 echo 'Testing application conformity according to its Swagger definition ...'
             }
         }
-*/
+
         stage('Bake') {
             steps {
 			    sh 'echo \"Verification de la presence de l\'image Docker dans la registry locale (elle a du avoir le temps de se reconstruire ou se telecharger)\"'
@@ -113,6 +113,7 @@ pipeline {
 				sh 'docker push ${dockerRegistry}/${dockerRepo}:${package_version}'
             }
         }
+*/
     }
 
 }
